@@ -1,0 +1,16 @@
+{
+  "scripts": {
+    "compile": "node -e \"require('fs').rmSync('build',{recursive:true,force:true})\" && npx solc --bin --abi --optimize --base-path . --include-path node_modules -o build contracts/MainnetIndexToken.sol contracts/MainnetIndexFactory.sol contracts/MainnetIndexRouter.sol",
+    "test": "node --test test/*.test.js",
+    "preflight:mainnet": "node contracts/deploy-mainnet.js",
+    "deploy:mainnet": "node contracts/deploy-mainnet.js --deploy"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^5.6.1",
+    "ethers": "^6.16.0"
+  },
+  "devDependencies": {
+    "ganache": "^7.9.2",
+    "solc": "^0.8.30"
+  }
+}

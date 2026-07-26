@@ -1,0 +1,31 @@
+config.js
+.env*
+!.env.example
+.DS_Store
+Thumbs.db
+node_modules
+build
+.vercel
+vercel-static
+vercel-static/.vercel
+*.log
+
+# Local creative iterations and screenshots; production uses assets/brand only.
+uploads/
+assets/*
+!assets/brand/
+!assets/brand/**
+logo-concepts.html
+tweaks-panel.jsx
+
+# Legacy testnet deployment surface; mainnet uses Mainnet* contracts only.
+contracts/AtlasVault.sol
+contracts/IndexFactory.sol
+contracts/IndexToken.sol
+contracts/StockPaymentVault.sol
+contracts/config-loader.js
+contracts/deploy-factory-v2.js
+contracts/deploy-stock-payment-vault.js
+contracts/deploy-vault.js
+contracts/deploy.js
+deployment.json

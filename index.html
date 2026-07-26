@@ -1,0 +1,942 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>ATLAS · Tokenized Stock Index Protocol on Robinhood Chain</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta property="og:image" content="assets/brand/atlas-logo-horizontal-dark.png" />
+<link rel="icon" type="image/png" href="assets/brand/atlas-icon-dark.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;0,600;1,400&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Serif:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet" />
+
+<style>
+  :root{
+    --paper: #F1EEE7;
+    --paper-2: #EAE5DA;
+    --paper-3: #DED7C8;
+    --ink: #1D2A44;
+    --ink-2: #223A66;
+    --ink-soft: #4A5775;
+    --ink-mute: #7C84A0;
+    --rule: #C9BFA8;
+    --rule-soft: #D8D0BC;
+    --blue: #5E79B2;
+    --blue-2: #6B84B8;
+    --blue-mist: #B8C8E8;
+    --blue-veil: #D7E1F2;
+    --green: #3B8C6E;
+    --red: #9E3424;
+    --gold: #8A6B33;
+    --display: "Cinzel", Georgia, serif;
+    --mono: "IBM Plex Mono", ui-monospace, monospace;
+    --sans: "IBM Plex Sans", system-ui, sans-serif;
+    --max: 1400px;
+    --pad: clamp(20px, 4vw, 56px);
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html{ scroll-behavior:smooth; }
+  body{
+    background: var(--paper); color: var(--ink); font-family: var(--sans);
+    -webkit-font-smoothing:antialiased; overflow-x:hidden;
+  }
+  /* paper grain */
+  body::before{
+    content:""; position:fixed; inset:0;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='280' height='280'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.11  0 0 0 0 0.16  0 0 0 0 0.27  0 0 0 0.18 0'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.55'/></svg>");
+    mix-blend-mode: multiply; opacity:.32; pointer-events:none; z-index:1;
+  }
+  body::after{
+    content:""; position:fixed; inset:0;
+    background:
+      repeating-linear-gradient(91deg, transparent 0 90px, rgba(34,58,102,.02) 90px 91px),
+      repeating-linear-gradient(178deg, transparent 0 130px, rgba(34,58,102,.018) 130px 131px);
+    pointer-events:none; z-index:1;
+  }
+
+  /* ─── TOPBAR ─── */
+  .topbar{
+    position:sticky; top:0; z-index:50;
+    background: rgba(241,238,231,.92); border-bottom: 1px solid var(--ink);
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  }
+  .topbar::after{
+    content:""; position:absolute; left:0; right:0; bottom:-4px; height:3px;
+    background: repeating-linear-gradient(90deg, var(--ink) 0 1px, transparent 1px 8px); opacity:.4;
+  }
+  .topbar-inner{
+    max-width: var(--max); margin: 0 auto; padding: 14px var(--pad);
+    display:grid; grid-template-columns: auto 1fr auto; gap: 24px; align-items:center;
+  }
+  .brand{ display:flex; align-items:center; gap: 14px; text-decoration:none; color:var(--ink); cursor:pointer; }
+  .brand-mark{
+    width: 48px; height:48px; display:grid; place-items:center; background: var(--paper); overflow:hidden;
+  }
+  .brand-mark img{ width:100%; height:100%; object-fit:cover; }
+  .brand-name{ font-family:var(--display); font-weight:700; font-size: 22px; letter-spacing:.22em; }
+  .brand-sub{ font-family:var(--mono); font-size: 9.5px; letter-spacing:.26em; color: var(--ink-soft); margin-top: 5px; text-transform:uppercase;}
+
+  .topnav{ display:flex; justify-content:center; gap:0; }
+  .topnav a{
+    font-family:var(--mono); font-size:11px; letter-spacing:.24em; text-transform:uppercase;
+    color: var(--ink-soft); text-decoration:none; padding: 10px 18px; cursor:pointer;
+    border-right: 1px solid var(--rule); transition: color .2s ease;
+  }
+  .topnav a:first-child{ border-left: 1px solid var(--rule); }
+  .topnav a:hover{ color: var(--ink); }
+  .topnav a.active{ color: var(--blue); }
+
+  .topright{ display:flex; align-items:center; gap:12px; }
+  .live-chip{
+    display:inline-flex; align-items:center; gap:8px;
+    border:1px solid var(--ink); padding: 6px 12px;
+    font-family:var(--mono); font-size:10px; letter-spacing:.22em; text-transform:uppercase;
+  }
+  .live-dot{ width:7px; height:7px; background: var(--green); border-radius:50%; position:relative;}
+  .live-dot::after{ content:""; position:absolute; inset:-5px; border-radius:50%; border:1px solid var(--green); animation: pulse 2.2s ease-out infinite;}
+  @keyframes pulse{ 0%{ transform:scale(.6); opacity:.6;} 100%{transform:scale(2); opacity:0;} }
+
+  .btn{
+    font-family: var(--mono); font-size: 10.5px; letter-spacing:.22em; text-transform:uppercase;
+    padding: 12px 18px; border:1px solid var(--ink); background: var(--paper); color: var(--ink);
+    cursor:pointer; display:inline-flex; align-items:center; gap:10px; transition: all .18s ease; text-decoration:none;
+    position:relative; overflow:hidden;
+  }
+  .btn::after{
+    content:""; position:absolute; inset:0; background: var(--ink); transform: scaleX(0); transform-origin: left;
+    transition: transform .3s cubic-bezier(.4,0,.2,1); z-index:0;
+  }
+  .btn:hover::after{ transform: scaleX(1); }
+  .btn span, .btn{ position:relative; z-index:1; }
+  .btn:hover{ color: var(--paper); border-color: var(--ink); }
+  .btn.primary{ background: var(--ink); color: var(--paper); }
+  .btn.primary::after{ background: var(--ink-2); }
+  .btn.primary:hover{ background: var(--ink); }
+  .btn.ghost{ border-color: var(--rule); color: var(--ink-soft); background: transparent; }
+  .btn.ghost::after{ background: var(--ink); }
+  .btn.ghost:hover{ color: var(--paper); border-color: var(--ink); }
+
+  /* ─── SCROLL REVEAL ─── */
+  .reveal{
+    opacity: 0; transform: translateY(32px);
+    transition: opacity .7s cubic-bezier(.4,0,.2,1), transform .7s cubic-bezier(.4,0,.2,1);
+  }
+  .reveal.visible{
+    opacity: 1; transform: translateY(0);
+  }
+  .reveal-delay-1{ transition-delay: .1s; }
+  .reveal-delay-2{ transition-delay: .2s; }
+  .reveal-delay-3{ transition-delay: .3s; }
+  .reveal-delay-4{ transition-delay: .4s; }
+
+  /* ─── HERO ─── */
+  .hero{
+    position:relative; border-bottom: 1px solid var(--ink); overflow:hidden;
+    background:
+      radial-gradient(900px 600px at 75% 20%, rgba(94,121,178,.12), transparent 60%),
+      radial-gradient(600px 400px at 10% 80%, rgba(184,200,232,.10), transparent 50%),
+      var(--paper);
+  }
+  .hero-inner{
+    max-width: var(--max); margin: 0 auto; padding: 80px var(--pad) 70px;
+    position:relative; z-index:3;
+    display:grid; grid-template-columns: 1.1fr 1fr; gap: 60px; align-items:center;
+  }
+  .hero-tag{
+    font-family:var(--mono); font-size:11px; letter-spacing:.32em; text-transform:uppercase; color: var(--ink-soft);
+    display:flex; align-items:center; gap:14px; margin-bottom: 24px;
+    opacity:0; animation: fadeSlideIn .8s .2s forwards;
+  }
+  .hero-tag::before{ content:""; width:32px; height:1px; background: var(--ink); }
+  .hero-tag::after{ content:""; flex:1; height:1px; background: var(--rule); }
+  .hero h1{
+    font-family:var(--display); font-weight:800;
+    font-size: clamp(56px, 7.5vw, 120px);
+    line-height: .88; letter-spacing: .005em; margin: 0 0 28px;
+    opacity:0; animation: fadeSlideIn .8s .35s forwards;
+  }
+  .hero h1 .it{
+    font-family: "IBM Plex Serif", serif; font-style: italic; font-weight: 400;
+    color: var(--blue); letter-spacing: -.01em; display:block;
+  }
+  .hero-lede{
+    font-family: var(--sans); font-size: 16px; line-height: 1.6; color: var(--ink-soft);
+    max-width: 500px; margin: 0 0 32px;
+    opacity:0; animation: fadeSlideIn .8s .5s forwards;
+  }
+  .hero-lede em{ color: var(--ink); font-style:normal; font-weight:500; }
+  .hero-cta{ display:flex; gap: 10px; flex-wrap:wrap; opacity:0; animation: fadeSlideIn .8s .65s forwards; }
+
+  @keyframes fadeSlideIn{
+    from{ opacity:0; transform: translateY(20px); }
+    to{ opacity:1; transform: translateY(0); }
+  }
+
+  /* hero right stats */
+  .hero-stats{
+    display:grid; grid-template-columns: repeat(2, 1fr); gap:0;
+    border: 1px solid var(--ink); background: var(--paper);
+    opacity:0; animation: fadeSlideIn .8s .5s forwards;
+  }
+  .hero-stat{
+    padding: 24px 22px; border-right: 1px solid var(--rule); border-bottom: 1px solid var(--rule);
+    position:relative; cursor:default; transition: background .2s;
+  }
+  .hero-stat:hover{ background: var(--paper-2); }
+  .hero-stat:nth-child(2n){ border-right:none; }
+  .hero-stat:nth-child(n+3){ border-bottom:none; }
+  .hero-stat .k{ font-family:var(--mono); font-size:9.5px; letter-spacing:.28em; text-transform:uppercase; color: var(--ink-soft); margin-bottom: 10px; }
+  .hero-stat .v{ font-family:var(--display); font-weight:700; font-size: 32px; line-height:1; letter-spacing:.04em; font-feature-settings:"tnum"; }
+  .hero-stat .v .unit{ font-size: 13px; color: var(--ink-soft); margin-left:3px; font-weight:500; }
+  .hero-stat .delta{ font-family:var(--mono); font-size:10px; color: var(--green); margin-top: 8px; letter-spacing:.06em; }
+  .hero-stat .spark{ position:absolute; right:14px; bottom:18px; }
+  .hero-stat .spark svg path{ fill:none; stroke: var(--blue); stroke-width:1.2; stroke-dasharray: 100; stroke-dashoffset: 100; animation: drawSpark 1.5s .8s forwards ease-out; }
+  .hero-stat .spark svg circle{ fill: var(--blue); opacity:0; animation: fadeIn .3s 2s forwards; }
+  @keyframes drawSpark{ to{ stroke-dashoffset: 0; } }
+  @keyframes fadeIn{ to{ opacity:1; } }
+
+  /* orbital decoration */
+  .hero-orbital{
+    position:absolute; right: 4%; top: -8%; width: 360px; height: 360px;
+    z-index:2; pointer-events:none; opacity:0; animation: fadeIn 2s 1s forwards;
+  }
+  .hero-orbital svg{ width:100%; height:100%; animation: spin 80s linear infinite; }
+  @keyframes spin{ to { transform: rotate(360deg);} }
+
+  /* ─── SECTIONS ─── */
+  section.band{ max-width: var(--max); margin: 0 auto; padding: 80px var(--pad); position:relative; }
+  section.band.tight{ padding: 48px var(--pad); }
+
+  .sec-head{
+    display:grid; grid-template-columns: auto 1fr auto; align-items:baseline; gap: 22px;
+    padding-bottom: 14px; border-bottom: 2px solid var(--ink);
+    position:relative; margin-bottom: 36px;
+  }
+  .sec-head::after{ content:""; position:absolute; left:0; right:0; bottom:-5px; height:1px; background: var(--ink); }
+  .sec-head .kick{ font-family:var(--mono); font-size:11px; letter-spacing:.32em; text-transform:uppercase; color: var(--ink-soft);}
+  .sec-head h2{
+    font-family:var(--display); font-weight:700;
+    font-size: clamp(28px, 3.5vw, 44px); margin:0; color: var(--ink); letter-spacing:.04em; text-transform:uppercase; line-height:1;
+  }
+  .sec-head h2 .it{ font-family:"IBM Plex Serif", serif; font-style: italic; font-weight: 400; color: var(--blue); text-transform: none; }
+  .sec-head .right{ font-family:var(--mono); font-size:10.5px; letter-spacing:.22em; text-transform:uppercase; color: var(--ink-soft); }
+
+  /* ─── TRIPTYCH ─── */
+  .triptych{ display:grid; grid-template-columns: repeat(3, 1fr); gap: 0; border: 1px solid var(--ink); }
+  .tri-card{
+    position:relative; border-right: 1px solid var(--ink);
+    overflow:hidden; min-height: 420px;
+    display:flex; flex-direction:column; justify-content: flex-end;
+    transition: background .25s ease; background: var(--paper);
+    cursor:pointer; text-decoration:none; color: var(--ink);
+  }
+  .tri-card:last-child{ border-right:none; }
+  .tri-card:hover{ background: var(--paper-2); }
+  .tri-card:hover .icon-wrap svg{ transform: scale(1.08); opacity:.8; }
+  .tri-card .roman{
+    position:absolute; top: 18px; left: 20px;
+    font-family:var(--display); font-weight: 600; font-size:13px; color: var(--ink-soft); letter-spacing:.18em;
+  }
+  .tri-card .icon-wrap{
+    flex:1; display:grid; place-items:center; padding: 40px;
+  }
+  .tri-card .icon-wrap svg{ width:80px; height:80px; opacity:.6; transition: all .35s ease; }
+  .tri-card .body{
+    padding: 24px 24px 28px; border-top: 1px solid var(--ink);
+    background: var(--paper); transition: background .25s;
+  }
+  .tri-card:hover .body{ background: var(--paper-2); }
+  .tri-card .verb{
+    font-family:"IBM Plex Serif", serif; font-style: italic; font-weight: 400;
+    font-size: 13px; color: var(--blue); margin-bottom: 6px; letter-spacing:.04em;
+  }
+  .tri-card h3{
+    font-family:var(--display); font-weight:700;
+    font-size: clamp(28px, 3vw, 42px); line-height: .92; letter-spacing:.02em;
+    margin: 0 0 10px; text-transform:uppercase;
+  }
+  .tri-card p{
+    font-family:var(--sans); font-size: 13px; line-height: 1.6; color: var(--ink-soft); max-width: 320px;
+  }
+  .tri-card .read{
+    margin-top:14px; font-family:var(--mono); font-size:10px; letter-spacing:.2em; text-transform:uppercase; color: var(--ink-soft);
+    display:flex; justify-content:space-between; transition: color .2s;
+  }
+  .tri-card:hover .read{ color: var(--blue); }
+
+  /* ─── RIBBON ─── */
+  .ribbon{
+    display:grid; grid-template-columns: repeat(4, 1fr); gap: 0;
+    border: 1px solid var(--ink); margin-top: 36px;
+  }
+  .ribbon .cell{
+    padding: 22px 20px 24px; border-right: 1px solid var(--rule); position:relative;
+    transition: background .2s;
+  }
+  .ribbon .cell:last-child{ border-right:none;}
+  .ribbon .cell:hover{ background: var(--paper-2); }
+  .ribbon .k{ font-family:var(--mono); font-size:9.5px; letter-spacing:.28em; text-transform:uppercase; color: var(--ink-soft); margin-bottom: 12px; display:flex; gap:6px; align-items:center;}
+  .ribbon .k .r{ font-family:var(--display); color: var(--blue); letter-spacing:.05em;}
+  .ribbon .v{ font-family:var(--display); font-weight:700; font-size: clamp(28px, 3vw, 38px); line-height:1; letter-spacing:.04em; font-feature-settings:"tnum";}
+  .ribbon .v .unit{ font-size: 13px; color: var(--ink-soft); margin-left:4px; font-weight: 500; }
+  .ribbon .delta{ font-family:var(--mono); font-size:10px; color: var(--ink-soft); letter-spacing:.06em; margin-top: 8px;}
+  .ribbon .delta .up{ color: var(--green); }
+
+  /* ─── HOW IT WORKS ─── */
+  .steps-grid{
+    display:grid; grid-template-columns: repeat(5, 1fr); gap:0;
+    border: 1px solid var(--ink); background: var(--paper);
+  }
+  .step{
+    padding: 28px 22px; border-right: 1px solid var(--rule); position:relative;
+    display:flex; flex-direction:column; gap:12px;
+    transition: background .2s;
+  }
+  .step:hover{ background: var(--paper-2); }
+  .step:last-child{ border-right:none; }
+  .step .num{ font-family:var(--display); font-size:12px; letter-spacing:.14em; color: var(--blue); border-bottom:1px solid var(--rule); padding-bottom:6px; display:inline-block; align-self:flex-start; }
+  .step svg{ width:36px; height:36px; transition: transform .3s; }
+  .step:hover svg{ transform: scale(1.12); }
+  .step h4{ font-family:var(--display); font-size:15px; letter-spacing:.14em; text-transform:uppercase; font-weight:600; }
+  .step p{ font-family:var(--mono); font-size:10px; letter-spacing:.1em; color:var(--ink-soft); line-height:1.6; }
+  .step-arrow{
+    position:absolute; right:-8px; top:50%; width:14px; height:14px;
+    background: var(--paper); border-top: 1px solid var(--ink); border-right: 1px solid var(--ink);
+    transform: translateY(-50%) rotate(45deg); z-index:2;
+  }
+  .step:last-child .step-arrow{ display:none; }
+
+  /* ─── TERMINAL PREVIEW ─── */
+  .terminal-preview{
+    display:grid; grid-template-columns: 1fr 1fr; gap:0;
+    border: 1px solid var(--ink); background: var(--paper); margin-top: 36px;
+  }
+  .term-left{
+    padding: 36px 36px; display:flex; flex-direction:column; justify-content:center;
+    border-right: 1px solid var(--ink);
+  }
+  .term-left .kick{ font-family:var(--mono); font-size:10px; letter-spacing:.3em; text-transform:uppercase; color:var(--blue); margin-bottom:16px; }
+  .term-left h3{
+    font-family:var(--display); font-weight:800; font-size: clamp(32px, 4vw, 52px);
+    line-height:.92; letter-spacing:.01em; margin-bottom:18px; text-transform:uppercase;
+  }
+  .term-left h3 .it{ font-family:"IBM Plex Serif", serif; font-style:italic; font-weight:400; color:var(--blue); text-transform:none; }
+  .term-left p{ font-family:var(--sans); font-size:14px; line-height:1.6; color:var(--ink-soft); max-width:440px; margin-bottom:24px; }
+  .term-right{
+    --term-line: 28px;
+    padding: 28px; background: var(--paper-2); position:relative;
+    font-family: var(--mono); font-size: 12px; line-height: var(--term-line); color: var(--ink-soft);
+    border-left: 2px solid var(--ink);
+    min-height: 340px;
+  }
+  .term-right .term-lines{
+    position:absolute; inset:0; top:36px; pointer-events:none;
+    background-image: repeating-linear-gradient(180deg, transparent 0 calc(var(--term-line) - 1px), var(--rule-soft) calc(var(--term-line) - 1px) var(--term-line));
+    background-position-y: -8px;
+  }
+  .term-right::before{
+    content:"ATLAS TERMINAL"; position:absolute; top:0; left:0; right:0;
+    background: var(--paper-3); padding: 8px 18px; font-size:9px; letter-spacing:.3em; text-transform:uppercase;
+    color: var(--ink-soft); border-bottom: 1px solid var(--ink); font-family:var(--display); font-weight:600;
+    z-index:2;
+  }
+  .term-right .tbody{ padding-top:36px; padding-left:16px; position:relative; z-index:1; }
+  .term-right .pr{ color: var(--blue); font-weight:600; }
+  .term-right .ok{ color: var(--green); font-weight:500; }
+  .term-right .rsp{ color: var(--ink-soft); padding-left:18px; border-left:2px solid var(--blue); }
+  .term-line{ opacity:0; transform:translateY(6px); transition: opacity .35s, transform .35s; }
+  .term-line.typed{ opacity:1; transform:translateY(0); }
+  .term-cursor{ display:inline-block; width:8px; height:14px; background:var(--blue); animation: blink 1s step-end infinite; vertical-align:text-bottom; margin-left:2px; }
+  @keyframes blink{ 50%{ opacity:0; } }
+
+  /* ─── PARTNERS ─── */
+  .partners{
+    display:flex; justify-content:center; align-items:center; gap: 48px; flex-wrap:wrap;
+    padding: 18px 0;
+  }
+  .partner{
+    font-family:var(--display); font-size:16px; letter-spacing:.2em; text-transform:uppercase;
+    color: var(--ink-mute); font-weight:600; opacity:.55; transition: opacity .3s, transform .3s;
+    cursor:default;
+  }
+  .partner:hover{ opacity:1; transform: scale(1.05); }
+
+  /* ─── CTA BAND ─── */
+  .cta-band{
+    text-align:center; padding: 80px var(--pad); border-top: 1px solid var(--ink);
+    background:
+      radial-gradient(800px 500px at 50% 60%, rgba(94,121,178,.08), transparent 60%),
+      var(--paper);
+  }
+  .cta-band h2{
+    font-family:var(--display); font-weight:800;
+    font-size: clamp(40px, 6vw, 90px); line-height:.88; letter-spacing:.01em; margin-bottom:24px;
+  }
+  .cta-band h2 .it{ font-family:"IBM Plex Serif", serif; font-style:italic; font-weight:400; color:var(--blue); }
+  .cta-band p{ font-family:var(--sans); font-size:16px; color:var(--ink-soft); max-width:560px; margin: 0 auto 32px; line-height:1.6; }
+  .cta-band .btns{ display:flex; justify-content:center; gap:12px; flex-wrap:wrap; }
+
+  /* ─── FOOTER ─── */
+  .footer{
+    border-top: 1px solid var(--ink); padding: 48px var(--pad) 28px;
+    background: linear-gradient(180deg, transparent 0%, rgba(94,121,178,.04) 100%);
+  }
+  .footer-inner{ max-width: var(--max); margin: 0 auto; display:grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 36px; }
+  .footer h4{ font-family:var(--display); font-size:13px; letter-spacing:.22em; text-transform:uppercase; margin: 0 0 14px; font-weight:600; }
+  .footer .links{ display:flex; flex-direction:column; gap: 8px; }
+  .footer .links a{ font-family:var(--mono); font-size:11px; letter-spacing:.14em; color: var(--ink-soft); text-decoration:none; text-transform:uppercase; transition: color .2s; }
+  .footer .links a:hover{ color: var(--ink); }
+  .footer-bottom{
+    max-width: var(--max); margin: 36px auto 0; padding-top: 18px; border-top: 1px solid var(--rule);
+    display:flex; justify-content:space-between;
+    font-family:var(--mono); font-size:9.5px; letter-spacing:.24em; text-transform:uppercase; color: var(--ink-soft);
+  }
+  .footer-bottom .orn{ font-family:var(--display); color:var(--blue); letter-spacing:.4em; }
+
+  .glyph-line{ stroke: currentColor; stroke-width:1.2; fill:none; }
+
+  /* ─── SCROLL PROGRESS BAR ─── */
+  .scroll-progress{
+    position:fixed; top:0; left:0; height:2px; background: var(--blue); z-index:100;
+    width:0; transition: none;
+  }
+
+  /* responsive */
+  @media (max-width: 1100px){
+    .hero-inner{ grid-template-columns: 1fr; }
+    .hero-stats{ max-width:480px; }
+    .triptych{ grid-template-columns: 1fr; }
+    .tri-card{ border-right:none; border-bottom: 1px solid var(--ink); min-height: 300px; }
+    .tri-card:last-child{ border-bottom:none; }
+    .ribbon{ grid-template-columns: repeat(2, 1fr); }
+    .steps-grid{ grid-template-columns: repeat(2, 1fr); }
+    .step:nth-child(2n){ border-right:none; }
+    .terminal-preview{ grid-template-columns: 1fr; }
+    .term-left{ border-right:none; border-bottom:1px solid var(--ink); }
+    .topnav{ display:none; }
+    .footer-inner{ grid-template-columns: 1fr 1fr; }
+  }
+  @media (max-width: 600px){
+    .hero-stats{ grid-template-columns: 1fr; }
+    .ribbon{ grid-template-columns: 1fr; }
+    .steps-grid{ grid-template-columns: 1fr; }
+    .step{ border-right:none !important; border-bottom:1px solid var(--rule); }
+    .step:last-child{ border-bottom:none; }
+    .partners{ gap:24px; }
+    .footer-inner{ grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- scroll progress -->
+<div class="scroll-progress" id="scrollProgress"></div>
+
+<!-- ═══ TOPBAR ═══ -->
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="#" onclick="window.scrollTo({top:0,behavior:'smooth'});return false;">
+      <div class="brand-mark">
+        <img src="assets/brand/atlas-icon-light.png" alt="" />
+      </div>
+      <div>
+        <div class="brand-name">ATLAS</div>
+        <div class="brand-sub">Stock Index Protocol</div>
+      </div>
+    </a>
+    <nav class="topnav" id="topnav">
+      <a href="#how" data-section="how">// How it Works</a>
+      <a href="#indices" data-section="indices">// Index</a>
+      <a href="#terminal" data-section="terminal">// Terminal</a>
+      <a href="#partners" data-section="partners">// Powered By</a>
+    </nav>
+    <div class="topright">
+      <span class="live-chip"><span class="live-dot"></span> Mainnet Pre-launch</span>
+      <a href="ATLAS.html" class="btn primary">Launch App</a>
+    </div>
+  </div>
+</header>
+
+<!-- ═══ HERO ═══ -->
+<section class="hero">
+  <div class="hero-orbital">
+    <svg viewBox="0 0 360 360">
+      <g fill="none" stroke="var(--ink)" stroke-width="0.4" opacity=".4">
+        <circle cx="180" cy="180" r="175"/>
+        <circle cx="180" cy="180" r="140" stroke-dasharray="2 4"/>
+        <circle cx="180" cy="180" r="105"/>
+        <circle cx="180" cy="180" r="70" stroke-dasharray="1.5 3"/>
+      </g>
+      <g stroke="var(--ink)" stroke-width="0.4" opacity=".3">
+        <line x1="5" y1="180" x2="355" y2="180"/>
+        <line x1="180" y1="5" x2="180" y2="355"/>
+        <line x1="50" y1="50" x2="310" y2="310"/>
+        <line x1="310" y1="50" x2="50" y2="310"/>
+      </g>
+      <g fill="var(--blue)">
+        <circle cx="335" cy="180" r="3"/>
+        <circle cx="100" cy="80" r="2"/>
+        <circle cx="260" cy="260" r="2.5"/>
+        <circle cx="80" cy="250" r="1.5"/>
+      </g>
+    </svg>
+  </div>
+
+  <div class="hero-inner">
+    <div>
+      <div class="hero-tag">Robinhood Chain &nbsp;&middot;&nbsp; Arbitrum Orbit &nbsp;&middot;&nbsp; Mainnet Pre-launch</div>
+      <h1>
+        ATLAS,
+        <span class="it">tokenized stock</span>
+        index.
+      </h1>
+      <p class="hero-lede">
+        Institutional-grade tokenized stock indices on Robinhood Chain.
+        Prepare directly collateralized tokenized-stock baskets with transparent on-chain mint and redemption.
+        Fully non-custodial &middot; <em>verifiable, auditable, composable</em>.
+      </p>
+      <div class="hero-cta">
+        <a href="ATLAS.html" class="btn primary">&#10095; Launch App</a>
+        <a href="#how" class="btn">How It Works</a>
+        <a href="ATLAS.html#terminal" class="btn ghost">Open Terminal</a>
+      </div>
+    </div>
+
+    <div class="hero-stats">
+      <div class="hero-stat">
+        <div class="k">// Vault TVL</div>
+        <div class="v" id="stat-tvl"><span>--</span><span class="unit">stocks</span></div>
+        <div class="delta" id="stat-tvl-detail">Loading from chain...</div>
+      </div>
+      <div class="hero-stat">
+        <div class="k">// Indices</div>
+        <div class="v" id="stat-indices"><span>--</span><span class="unit">deployed</span></div>
+        <div class="delta" id="stat-indices-detail">Loading...</div>
+      </div>
+      <div class="hero-stat">
+        <div class="k">// Stocks Available</div>
+        <div class="v"><span data-count="5">0</span><span class="unit">live</span></div>
+        <div class="delta">TSLA, AMZN, NFLX, AMD, PLTR</div>
+      </div>
+      <div class="hero-stat">
+        <div class="k">// Fee Model</div>
+        <div class="v" style="font-size:24px;">50 / 50</div>
+        <div class="delta">Creator / treasury split on-chain</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ TRIPTYCH: Create · Buy · Earn ═══ -->
+<section class="band" id="indices">
+  <div class="sec-head reveal">
+    <span class="kick">&sect; 01 &middot; Core features</span>
+    <h2>Create <span class="it">&middot;</span> Mint <span class="it">&middot;</span> Redeem</h2>
+    <span class="right">&#10022; &nbsp; &#10057; &nbsp; &#10022;</span>
+  </div>
+
+  <div class="triptych">
+    <a class="tri-card reveal reveal-delay-1" href="ATLAS.html#create">
+      <div class="roman">I. &middot; Create</div>
+      <div class="icon-wrap">
+        <svg viewBox="0 0 80 80" fill="none">
+          <path class="glyph-line" d="M20 30l20-12 20 12-20 12z" stroke-width="1.5"/>
+          <path class="glyph-line" d="M20 42l20 12 20-12" stroke-width="1.5"/>
+          <path class="glyph-line" d="M20 54l20 12 20-12" stroke-width="1.5"/>
+        </svg>
+      </div>
+      <div class="body">
+        <div class="verb">bundle stocks into an index</div>
+        <h3>Create</h3>
+        <p>Select canonical Stock Tokens, set unit weights and an immutable creator fee through the deployed mainnet Factory.</p>
+        <div class="read"><span>// canonical allowlist &middot; mainnet live</span><span>&rarr;</span></div>
+      </div>
+    </a>
+    <a class="tri-card reveal reveal-delay-2" href="ATLAS.html#indices">
+      <div class="roman">II. &middot; Mint</div>
+      <div class="icon-wrap">
+        <svg viewBox="0 0 80 80" fill="none">
+          <rect class="glyph-line" x="16" y="24" width="48" height="32" stroke-width="1.5"/>
+          <path class="glyph-line" d="M16 32h48" stroke-width="1.5"/>
+          <path class="glyph-line" d="M44 44h12" stroke-width="1.5"/>
+        </svg>
+      </div>
+      <div class="body">
+        <div class="verb">ETH routing or direct RWA collateral</div>
+        <h3>Mint</h3>
+        <p>The deployed Index Router can atomically swap ETH into every component and mint; direct Stock Token collateral remains the fail-closed fallback.</p>
+        <div class="read"><span>// atomic router · fully backed</span><span>&rarr;</span></div>
+      </div>
+    </a>
+    <a class="tri-card reveal reveal-delay-3" href="ATLAS.html#portfolio">
+      <div class="roman">III. &middot; Redeem</div>
+      <div class="icon-wrap">
+        <svg viewBox="0 0 80 80" fill="none">
+          <circle class="glyph-line" cx="40" cy="40" r="22" stroke-width="1.5"/>
+          <path class="glyph-line" d="M40 18v6M40 56v6M18 40h6M56 40h6" stroke-width="1.5"/>
+          <path class="glyph-line" d="M34 34l12 12M46 34l-12 12" stroke-width="1"/>
+        </svg>
+      </div>
+      <div class="body">
+        <div class="verb">burn for Stock Tokens or routed ETH</div>
+        <h3>Redeem</h3>
+        <p>Burn index tokens for the deterministic raw-unit Stock Token basket; the tested reverse router can atomically convert those components back to ETH.</p>
+        <div class="read"><span>// non-custodial redemption</span><span>&rarr;</span></div>
+      </div>
+    </a>
+  </div>
+
+  <div class="ribbon reveal">
+    <div class="cell">
+      <div class="k"><span class="r">I.</span> Security</div>
+      <div class="v" style="font-size:22px;">Two-Step Owner</div>
+      <div class="delta">Factory governance · no legacy vault</div>
+    </div>
+    <div class="cell">
+      <div class="k"><span class="r">II.</span> Backing</div>
+      <div class="v" style="font-size:22px;">1:1 Backed</div>
+      <div class="delta">Always redeemable</div>
+    </div>
+    <div class="cell">
+      <div class="k"><span class="r">III.</span> Fees</div>
+      <div class="v" style="font-size:22px;">Immutable</div>
+      <div class="delta">Set once at creation</div>
+    </div>
+    <div class="cell">
+      <div class="k"><span class="r">IV.</span> Composable</div>
+      <div class="v" style="font-size:22px;">ERC-20</div>
+      <div class="delta">Transfer and integrate your index</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ HOW IT WORKS ═══ -->
+<section class="band tight" id="how">
+  <div class="sec-head reveal">
+    <span class="kick">&sect; 02 &middot; Protocol flow</span>
+    <h2>How <span class="it">it</span> Works</h2>
+    <span class="right">5 steps</span>
+  </div>
+
+  <div class="steps-grid">
+    <div class="step reveal reveal-delay-1">
+      <span class="num">Step I</span>
+      <svg viewBox="0 0 36 36"><circle class="glyph-line" cx="18" cy="14" r="7"/><path class="glyph-line" d="M7 32c0-6 5-11 11-11s11 5 11 11"/></svg>
+      <h4>Connect</h4>
+      <p>Connect your wallet to Robinhood Chain mainnet (Chain ID 4663). ETH is used for gas.</p>
+      <div class="step-arrow"></div>
+    </div>
+    <div class="step reveal reveal-delay-2">
+      <span class="num">Step II</span>
+      <svg viewBox="0 0 36 36"><rect class="glyph-line" x="5" y="10" width="26" height="16"/><path class="glyph-line" d="M5 14h26M22 20h6"/></svg>
+      <h4>Get Stocks</h4>
+      <p>Acquire canonical Stock Tokens through an official or audited secondary-market venue; verify contracts in Robinhood documentation.</p>
+      <div class="step-arrow"></div>
+    </div>
+    <div class="step reveal reveal-delay-3">
+      <span class="num">Step III</span>
+      <svg viewBox="0 0 36 36"><path class="glyph-line" d="M6 12l12-6 12 6-12 6z"/><path class="glyph-line" d="M6 19l12 6 12-6"/><path class="glyph-line" d="M6 26l12 6 12-6"/></svg>
+      <h4>Create Index</h4>
+      <p>Bundle stocks. Set weights and fees. Smart contract deploys your index token.</p>
+      <div class="step-arrow"></div>
+    </div>
+    <div class="step reveal reveal-delay-4">
+      <span class="num">Step IV</span>
+      <svg viewBox="0 0 36 36"><path class="glyph-line" d="M10 6h16v24H10z"/><path class="glyph-line" d="M14 14h8M14 18h5"/></svg>
+      <h4>Mint Directly</h4>
+      <p>Users supply each configured Stock Token directly to the index contract; no free or fixed-price vault path exists.</p>
+      <div class="step-arrow"></div>
+    </div>
+    <div class="step reveal reveal-delay-4">
+      <span class="num">Step V</span>
+      <svg viewBox="0 0 36 36"><circle class="glyph-line" cx="18" cy="18" r="11"/><path class="glyph-line" d="M18 7v4M18 25v4M7 18h4M25 18h4"/></svg>
+      <h4>Redeem</h4>
+      <p>Burn index tokens to recover the deterministic underlying Stock Token basket directly to the connected wallet.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ TERMINAL PREVIEW ═══ -->
+<section class="band" id="terminal">
+  <div class="sec-head reveal">
+    <span class="kick">&sect; 03 &middot; AI Agent</span>
+    <h2>The <span class="it">Terminal</span></h2>
+    <span class="right">Natural language trading</span>
+  </div>
+
+  <div class="terminal-preview reveal">
+    <div class="term-left">
+      <div class="kick">// AI-Powered</div>
+      <h3>Trade with<br/><span class="it">natural language.</span></h3>
+      <p>Interact with the protocol via natural language. Buy indices, manage your portfolio, check balances &middot; the AI agent handles the on-chain execution.</p>
+      <a href="ATLAS.html#terminal" class="btn primary">&#10095; Open Terminal</a>
+    </div>
+    <div class="term-right" id="termPreview">
+      <div class="term-lines"></div>
+      <div class="tbody" id="termBody">
+        <!-- lines injected by JS typing animation -->
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ PARTNERS ═══ -->
+<section class="band tight" id="partners">
+  <div class="sec-head reveal">
+    <span class="kick">&sect; 04 &middot; Stack</span>
+    <h2>Powered <span class="it">by</span></h2>
+    <span class="right">Arbitrum Ecosystem</span>
+  </div>
+  <div class="partners reveal">
+    <span class="partner">Robinhood Chain</span>
+    <span class="partner">Arbitrum</span>
+    <span class="partner">Solidity</span>
+  </div>
+</section>
+
+<!-- ═══ CTA ═══ -->
+<section class="cta-band">
+  <div class="reveal">
+    <h2>Build your<br/><span class="it">index.</span></h2>
+    <p>Deploy a tokenized stock index on Robinhood Chain. Select your stocks, define weights, set management fees. Institutional-grade infrastructure, accessible to everyone.</p>
+    <div class="btns">
+      <a href="ATLAS.html" class="btn primary" style="padding:16px 28px; font-size:12px;">&#10095; Launch App</a>
+      <a href="ATLAS.html#terminal" class="btn" style="padding:16px 28px; font-size:12px;">Open Terminal</a>
+      <a href="ATLAS.html#create" class="btn ghost" style="padding:16px 28px; font-size:12px;">Create Index</a>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ FOOTER ═══ -->
+<footer class="footer">
+  <div class="footer-inner">
+    <div>
+      <h4>Atlas Protocol</h4>
+      <p style="font-family:var(--sans); font-size:13px; color:var(--ink-soft); line-height:1.6; max-width:340px;">
+        Non-custodial tokenized stock index protocol on Robinhood Chain. Built for the Arbitrum Open House London Buildathon 2026.
+      </p>
+      <div class="live-chip" style="margin-top:18px;">
+        <span class="live-dot"></span> Mainnet Pre-launch
+      </div>
+    </div>
+    <div>
+      <h4>Protocol</h4>
+      <div class="links">
+        <a href="ATLAS.html">Launch App</a>
+        <a href="ATLAS.html#terminal">Terminal</a>
+        <a href="ATLAS.html#create">Create Index</a>
+        <a href="ATLAS.html#stocks">Stock Tokens</a>
+      </div>
+    </div>
+    <div>
+      <h4>Resources</h4>
+      <div class="links">
+        <a href="#how">How It Works</a>
+        <a href="#indices">Features</a>
+        <a href="#terminal">Terminal Demo</a>
+        <a href="#partners">Partners</a>
+      </div>
+    </div>
+    <div>
+      <h4>Ecosystem</h4>
+      <div class="links">
+        <a href="https://arbitrum.io" target="_blank" rel="noopener">Arbitrum</a>
+        <a href="https://robinhood.com" target="_blank" rel="noopener">Robinhood Chain</a>
+        <a href="https://github.com" target="_blank" rel="noopener">GitHub</a>
+        <a href="https://vercel.com" target="_blank" rel="noopener">Vercel</a>
+      </div>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>ATLAS Protocol &middot; MMXXVI &middot; Robinhood Chain</span>
+    <span class="orn">&#10022; &nbsp; &#10022; &nbsp; &#10022;</span>
+    <span>Built on Arbitrum Orbit</span>
+  </div>
+</footer>
+
+<script>
+(function(){
+  // ─── SCROLL PROGRESS BAR ───
+  const progressBar = document.getElementById('scrollProgress');
+  function updateProgress(){
+    const h = document.documentElement.scrollHeight - window.innerHeight;
+    const pct = h > 0 ? (window.scrollY / h) * 100 : 0;
+    progressBar.style.width = pct + '%';
+  }
+
+  // ─── NAV ACTIVE STATE ───
+  const navLinks = document.querySelectorAll('.topnav a');
+  const sections = ['indices','how','terminal','partners'];
+  function updateNav(){
+    const scrollY = window.scrollY + 120;
+    let current = '';
+    sections.forEach(id => {
+      const el = document.getElementById(id);
+      if(el && el.offsetTop <= scrollY) current = id;
+    });
+    navLinks.forEach(a => {
+      const href = a.getAttribute('href').replace('#','');
+      a.classList.toggle('active', href === current);
+    });
+  }
+
+  // ─── SCROLL REVEAL ───
+  const reveals = document.querySelectorAll('.reveal');
+  const revealObserver = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if(e.isIntersecting){
+        e.target.classList.add('visible');
+        revealObserver.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
+  reveals.forEach(el => revealObserver.observe(el));
+
+  // ─── COUNTER ANIMATION ───
+  const counters = document.querySelectorAll('[data-count]');
+  let countStarted = false;
+  function animateCounters(){
+    if(countStarted) return;
+    countStarted = true;
+    counters.forEach(el => {
+      const target = parseInt(el.dataset.count);
+      const duration = 1800;
+      const start = performance.now();
+      function tick(now){
+        const elapsed = now - start;
+        const progress = Math.min(elapsed / duration, 1);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        el.textContent = Math.round(eased * target);
+        if(progress < 1) requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+    });
+  }
+  const statsObserver = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if(e.isIntersecting){ animateCounters(); statsObserver.disconnect(); }
+    });
+  }, { threshold: 0.3 });
+  const statsEl = document.querySelector('.hero-stats');
+  if(statsEl) statsObserver.observe(statsEl);
+
+  // ─── TERMINAL TYPING ANIMATION ───
+  const termBody = document.getElementById('termBody');
+  const termLines = [
+    { type:'cmd', text:'show TSLA price' },
+    { type:'rsp', text:'Reading live market data...' },
+    { type:'rsp', text:'TSLA price returned from /api/prices' },
+    { type:'ok',  text:'Read-only example · no transaction executed.' },
+    { type:'br' },
+    { type:'cmd', text:'show my portfolio' },
+    { type:'rsp', text:'$ATLAS: 1.0 | TSLA: 3.0 | AMZN: 2.0 | PLTR: 5.0' },
+    { type:'br' },
+    { type:'cmd', text:'explain mainnet status' },
+    { type:'rsp', text:'Factory and Router are deployed on Robinhood Chain Mainnet. Contracts remain unaudited.' },
+    { type:'ok',  text:'AI requests use a server-side proxy.' },
+  ];
+
+  let termStarted = false;
+  function runTerminal(){
+    if(termStarted) return;
+    termStarted = true;
+    termBody.innerHTML = '';
+    let delay = 0;
+    termLines.forEach((line,i) => {
+      if(line.type === 'br'){
+        const br = document.createElement('br');
+        br.className = 'term-line typed';
+        setTimeout(() => termBody.appendChild(br), delay);
+        delay += 200;
+        return;
+      }
+      const div = document.createElement('div');
+      div.className = 'term-line';
+      if(line.type === 'cmd'){
+        delay += 300;
+        const cmdDelay = delay;
+        // First show prompt with cursor typing effect
+        div.innerHTML = '<span class="pr">&#10095;</span> ';
+        setTimeout(() => {
+          termBody.appendChild(div);
+          // Type out command character by character
+          let charIdx = 0;
+          const cursor = document.createElement('span');
+          cursor.className = 'term-cursor';
+          div.appendChild(cursor);
+          const typeInterval = setInterval(() => {
+            if(charIdx < line.text.length){
+              cursor.before(document.createTextNode(line.text[charIdx]));
+              charIdx++;
+            } else {
+              clearInterval(typeInterval);
+              cursor.remove();
+              div.classList.add('typed');
+            }
+          }, 35);
+        }, cmdDelay);
+        delay += line.text.length * 35 + 200;
+      } else {
+        if(line.type === 'rsp') div.className += ' rsp';
+        if(line.type === 'ok') div.className += ' ok';
+        div.textContent = line.text;
+        const d = delay;
+        setTimeout(() => {
+          termBody.appendChild(div);
+          requestAnimationFrame(() => div.classList.add('typed'));
+        }, d);
+        delay += 350;
+      }
+    });
+  }
+
+  const termObserver = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if(e.isIntersecting){ runTerminal(); termObserver.disconnect(); }
+    });
+  }, { threshold: 0.3 });
+  const termEl = document.getElementById('termPreview');
+  if(termEl) termObserver.observe(termEl);
+
+  // ─── SCROLL LISTENERS ───
+  let ticking = false;
+  window.addEventListener('scroll', () => {
+    if(!ticking){
+      requestAnimationFrame(() => {
+        updateProgress();
+        updateNav();
+        ticking = false;
+      });
+      ticking = true;
+    }
+  }, { passive: true });
+
+  // init
+  updateProgress();
+  updateNav();
+
+  // ─── SMOOTH SCROLL FOR ALL ANCHOR LINKS ───
+  document.querySelectorAll('a[href^="#"]').forEach(a => {
+    a.addEventListener('click', (e) => {
+      const id = a.getAttribute('href').slice(1);
+      if(!id) return;
+      const target = document.getElementById(id);
+      if(target){
+        e.preventDefault();
+        target.scrollIntoView({ behavior:'smooth', block:'start' });
+      }
+    });
+  });
+})();
+</script>
+
+<!-- Mainnet launch status -->
+<script>
+  document.getElementById('stat-indices').innerHTML = '<span>0</span><span class="unit">deployed</span>';
+  document.getElementById('stat-indices-detail').textContent = 'Factory live · community indices enabled';
+  document.getElementById('stat-tvl').innerHTML = '<span>--</span><span class="unit">not live</span>';
+  document.getElementById('stat-tvl-detail').textContent = 'No AtlasVault is enabled on mainnet';
+</script>
+
+</body>
+</html>

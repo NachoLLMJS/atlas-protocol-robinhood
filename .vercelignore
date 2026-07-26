@@ -1,0 +1,12 @@
+config.js
+contracts
+build
+node_modules
+.git
+.vercel
+*.log
+.env*
+package-lock.json
+package.json
+deployment.json
+README.md

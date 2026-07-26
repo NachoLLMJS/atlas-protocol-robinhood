@@ -1,0 +1,2127 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>ATLAS · Stock Index Protocol</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta property="og:image" content="assets/brand/atlas-logo-horizontal-dark.png" />
+<link rel="icon" type="image/png" href="assets/brand/atlas-icon-dark.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;0,600;1,400&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Serif:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet" />
+<script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.13.5/ethers.umd.min.js" crossorigin></script>
+<script src="stock-token-units.js"></script>
+
+<style>
+  :root{
+    --paper: #F1EEE7;
+    --paper-2: #EAE5DA;
+    --paper-3: #DED7C8;
+    --ink: #1D2A44;
+    --ink-2: #223A66;
+    --ink-soft: #4A5775;
+    --ink-mute: #7C84A0;
+    --rule: #C9BFA8;
+    --rule-soft: #D8D0BC;
+    --blue: #5E79B2;
+    --blue-2: #6B84B8;
+    --blue-mist: #B8C8E8;
+    --blue-veil: #D7E1F2;
+    --ochre: #8A6B33;
+    --green: #3B8C6E;
+    --red: #9E3424;
+    --serif: "Cinzel", "IBM Plex Serif", Georgia, serif;
+    --display: "Cinzel", Georgia, serif;
+    --mono: "IBM Plex Mono", ui-monospace, monospace;
+    --sans: "IBM Plex Sans", system-ui, sans-serif;
+  }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; background: var(--paper); color: var(--ink); font-family: var(--sans); }
+  body{
+    min-height:100vh;
+    background:
+      radial-gradient(1200px 800px at 80% -10%, rgba(94,121,178,.06), transparent 60%),
+      radial-gradient(1000px 700px at -5% 110%, rgba(184,200,232,.10), transparent 60%),
+      var(--paper);
+    position:relative;
+  }
+  body::before{
+    content:""; position:fixed; inset:0;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='320' height='320'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.11  0 0 0 0 0.16  0 0 0 0 0.27  0 0 0 0.18 0'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.55'/></svg>");
+    mix-blend-mode: multiply; opacity:.35; pointer-events:none; z-index:1;
+  }
+  body::after{
+    content:""; position:fixed; inset:0;
+    background-image:
+      repeating-linear-gradient(91deg, transparent 0 80px, rgba(34,58,102,.025) 80px 81px),
+      repeating-linear-gradient(178deg, transparent 0 140px, rgba(34,58,102,.02) 140px 141px);
+    pointer-events:none; z-index:1;
+  }
+  .app{ position:relative; z-index:2; display:grid; grid-template-columns: 232px 1fr; min-height:100vh; }
+  .app.has-rail{ grid-template-columns: 232px 1fr 320px; }
+
+  /* ============ SIDEBAR ============ */
+  aside.nav{
+    border-right: 1px solid var(--rule); padding: 22px 18px 22px 22px;
+    background: linear-gradient(180deg, rgba(94,121,178,.04), transparent 30%), var(--paper);
+    display:flex; flex-direction:column; gap:22px; position:relative;
+  }
+  aside.nav::after{
+    content:""; position:absolute; right:-1px; top:24px; bottom:24px; width:1px;
+    background: linear-gradient(180deg, transparent, var(--rule) 8%, var(--rule) 92%, transparent);
+  }
+  .brand{ display:flex; align-items:flex-start; gap:12px; padding-bottom:18px; border-bottom:1px solid var(--rule); }
+  .brand-seal{
+    width:52px; height:52px; display:grid; place-items:center; background: var(--paper); overflow:hidden; flex:0 0 auto;
+  }
+  .brand-seal img{ width:100%; height:100%; object-fit:cover; }
+  .brand-name{ font-family:var(--display); font-weight:600; font-size:20px; letter-spacing:.18em; line-height:1; margin-top:2px;}
+  .brand-sub{ font-family:var(--mono); font-size:9.5px; letter-spacing:.22em; color:var(--ink-soft); text-transform:uppercase; margin-top:8px;}
+
+  .agent-status{
+    border:1px solid var(--rule); padding:12px; display:flex; flex-direction:column; gap:6px;
+    background: rgba(184,200,232,.18); position:relative;
+  }
+  .agent-status::before{
+    content:"※"; position:absolute; top:-9px; left:10px; background:var(--paper); padding:0 6px;
+    font-size:11px; color:var(--ink-soft);
+  }
+  .agent-row{ display:flex; align-items:center; gap:8px; font-family:var(--mono); font-size:10px; letter-spacing:.18em; text-transform:uppercase; color:var(--ink); }
+  .agent-dot{ width:7px; height:7px; border-radius:50%; background: var(--green); position:relative; }
+  .agent-dot::after{ content:""; position:absolute; inset:-4px; border-radius:50%; border:1px solid var(--green); opacity:.4; animation: pulse 2.4s ease-out infinite;}
+  @keyframes pulse{ 0%{transform:scale(.6); opacity:.6;} 100%{transform:scale(1.6); opacity:0;} }
+  .agent-mode{ font-family:var(--mono); font-size:9.5px; letter-spacing:.2em; color:var(--ink-soft); }
+
+  nav.menu{ display:flex; flex-direction:column; gap:2px; }
+  .menu-label{
+    font-family:var(--mono); font-size:9.5px; letter-spacing:.24em; color:var(--ink-mute);
+    text-transform:uppercase; margin: 6px 4px 8px; display:flex; align-items:center; gap:8px;
+  }
+  .menu-label::after{ content:""; flex:1; height:1px; background: var(--rule); }
+  .menu-item{
+    display:flex; align-items:center; gap:10px; padding:9px 10px; cursor:pointer;
+    font-family:var(--mono); font-size:11px; letter-spacing:.18em; color:var(--ink-soft);
+    text-transform:uppercase; border:1px solid transparent; transition: all .15s ease; position:relative;
+  }
+  .menu-item .num{ font-family:var(--mono); font-size:9.5px; color:var(--ink-mute); width:22px; }
+  .menu-item:hover{ color:var(--ink); background: rgba(94,121,178,.08); }
+  .menu-item.active{
+    color:var(--ink); background: var(--paper); border:1px solid var(--ink); box-shadow: 3px 3px 0 var(--ink-2);
+  }
+  .menu-item.active::before{ content:"▸"; position:absolute; left:-14px; color:var(--ink); }
+
+  .nav-footer{ margin-top:auto; padding-top:16px; border-top:1px solid var(--rule); font-family:var(--mono); font-size:9.5px; color:var(--ink-soft); letter-spacing:.18em; line-height:1.7; }
+  .nav-footer .k{ color:var(--ink-mute); }
+  .nav-footer b{ color:var(--ink); font-weight:500; }
+
+  /* ============ MAIN ============ */
+  main{ padding: 26px 32px 60px; min-width:0; overflow-y:auto; }
+  .crumbs{ display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; }
+  .crumbs .path{ font-family:var(--mono); font-size:10px; letter-spacing:.28em; text-transform:uppercase; color:var(--ink-mute); }
+  .crumbs .path b{ color:var(--ink); font-weight:500; }
+  .actions{ display:flex; gap:10px; align-items:center; }
+  .btn{
+    font-family:var(--mono); font-size:10px; letter-spacing:.22em; text-transform:uppercase;
+    border:1px solid var(--ink); background:var(--paper); color:var(--ink);
+    padding:8px 14px; cursor:pointer; display:inline-flex; align-items:center; gap:8px;
+    transition: all .15s ease;
+  }
+  .btn:hover{ background: var(--ink); color: var(--paper); }
+  .btn.primary{ background:var(--ink); color:var(--paper); }
+  .btn.primary:hover{ background:var(--ink-2); }
+  .btn.ghost{ border-color: var(--rule); color: var(--ink-soft); }
+  .btn.ghost:hover{ color: var(--ink); border-color: var(--ink); background: transparent; }
+
+  /* Hero */
+  .hero{
+    margin-top:18px; padding: 6px 0 22px;
+    border-top: 2px solid var(--ink); border-bottom: 1px solid var(--ink); position:relative;
+  }
+  .hero::after{ content:""; position:absolute; top:6px; left:0; right:0; height:1px; background:var(--ink); }
+  .hero-meta{
+    font-family:var(--mono); font-size:9.5px; letter-spacing:.3em; text-transform:uppercase;
+    color:var(--ink-soft); display:flex; gap:24px; padding: 14px 0 6px; flex-wrap:wrap;
+  }
+  .hero-meta span b{ color:var(--ink); font-weight:500; }
+  .hero h1{
+    font-family:var(--display); font-weight:600; font-size: clamp(42px, 5vw, 78px);
+    letter-spacing:.01em; line-height:.95; margin: 12px 0 18px; color:var(--ink);
+  }
+  .hero h1 .amp{ color:var(--blue); font-style:italic; font-family:"IBM Plex Serif", serif; font-weight:400; }
+  .hero-lede{ font-family:var(--sans); font-size:14px; line-height:1.55; color:var(--ink-soft); max-width: 780px; }
+  .hero-lede em{ color:var(--ink); font-style:italic; }
+
+  /* Stats */
+  .stats{ display:grid; grid-template-columns: repeat(4, 1fr); gap:0; margin-top: 26px; border-top: 1px solid var(--ink); border-bottom: 1px solid var(--ink); }
+  .stat{ padding: 18px; border-right: 1px solid var(--rule); position:relative; }
+  .stat:last-child{ border-right:none; }
+  .stat-roman{ position:absolute; top:14px; right:14px; font-family:var(--display); font-size:11px; color:var(--ink-mute); letter-spacing:.1em; }
+  .stat-label{ font-family:var(--mono); font-size:9.5px; letter-spacing:.28em; text-transform:uppercase; color:var(--ink-soft); margin-bottom:14px; }
+  .stat-value{ font-family:var(--display); font-weight:600; font-size: 36px; line-height:1; color:var(--ink); font-feature-settings:"tnum"; }
+  .stat-value .unit{ font-size:18px; color:var(--ink-soft); margin-left:4px; font-weight:500;}
+  .stat-foot{ margin-top:12px; font-family:var(--mono); font-size:10px; letter-spacing:.06em; color:var(--ink-soft); }
+  .stat-foot .up{ color: var(--green); }
+  .spark{ position:absolute; bottom:14px; right:14px; }
+  .spark svg path{ fill:none; stroke: var(--blue); stroke-width:1.2; }
+  .spark svg circle{ fill: var(--ink); }
+
+  /* ── Overview Dashboard (AgentBase style) ── */
+  .ov-stats{ display:grid; grid-template-columns: repeat(4, 1fr); gap:14px; margin-top:22px; }
+  .ov-stat{
+    min-height:126px; padding:18px 20px; position:relative;
+    background: linear-gradient(135deg, rgba(94,121,178,.06), rgba(184,200,232,.04));
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    border: 1px solid var(--rule);
+    clip-path: polygon(0 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%);
+    transition: border-color .2s, background .2s;
+  }
+  .ov-stat:hover{ border-color: var(--blue); background: linear-gradient(135deg, rgba(94,121,178,.12), rgba(184,200,232,.08)); }
+  .ov-stat .ov-stat-icon{
+    width:34px; height:34px; border-radius:8px; display:grid; place-items:center;
+    background: rgba(94,121,178,.12); color: var(--blue); margin-bottom:10px;
+  }
+  .ov-stat .ov-stat-icon svg{ width:18px; height:18px; }
+  .ov-stat .ov-stat-val{ font-family:var(--display); font-weight:700; font-size:30px; line-height:1; color:var(--ink); font-feature-settings:"tnum"; }
+  .ov-stat .ov-stat-val .unit{ font-size:15px; color:var(--ink-soft); margin-left:4px; font-weight:500; }
+  .ov-stat .ov-stat-lbl{ font-family:var(--mono); font-size:9.5px; letter-spacing:.24em; text-transform:uppercase; color:var(--ink-soft); margin-top:8px; }
+  .ov-stat .ov-stat-foot{ font-family:var(--mono); font-size:10px; color:var(--ink-mute); margin-top:6px; }
+  .ov-stat .ov-stat-foot .up{ color:var(--green); }
+
+  .ov-grid{ display:grid; grid-template-columns: minmax(0, 1fr) 370px; gap:18px; margin-top:22px; }
+
+  .ov-panel{
+    border: 1px solid var(--rule); position:relative;
+    background: linear-gradient(135deg, rgba(94,121,178,.04), rgba(184,200,232,.02));
+    backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+    clip-path: polygon(0 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%);
+  }
+  .ov-panel-head{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:14px 18px; border-bottom:1px solid var(--rule);
+  }
+  .ov-panel-head h3{
+    font-family:var(--display); font-weight:600; font-size:15px; letter-spacing:.14em; text-transform:uppercase; margin:0; color:var(--ink);
+  }
+  .ov-panel-head .ov-link{
+    font-family:var(--mono); font-size:9px; letter-spacing:.2em; text-transform:uppercase;
+    color:var(--blue); cursor:pointer; transition: opacity .15s;
+  }
+  .ov-panel-head .ov-link:hover{ opacity:.7; }
+  .ov-panel-body{ padding:0; }
+  .ov-panel-body .ov-row{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:11px 18px; border-bottom:1px solid var(--rule-soft); transition: background .12s;
+  }
+  .ov-panel-body .ov-row:last-child{ border-bottom:none; }
+  .ov-panel-body .ov-row:hover{ background: rgba(94,121,178,.04); }
+
+  .ov-cta-grid{ display:grid; grid-template-columns: 1fr 1fr; gap:14px; margin-top:18px; }
+  .ov-cta{
+    padding:22px 20px; border:1px solid var(--rule); cursor:pointer;
+    background: linear-gradient(135deg, rgba(94,121,178,.04), rgba(184,200,232,.02));
+    backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+    clip-path: polygon(0 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%);
+    transition: border-color .2s, background .2s;
+  }
+  .ov-cta:hover{ border-color: var(--blue); background: linear-gradient(135deg, rgba(94,121,178,.10), rgba(184,200,232,.06)); }
+
+  /* Section titles */
+  .sec-title{
+    margin: 36px 0 16px; display:flex; align-items:baseline; gap:16px;
+    border-bottom: 1px solid var(--ink); padding-bottom: 10px; position:relative;
+  }
+  .sec-title::after{ content:""; position:absolute; bottom:-4px; left:0; right:0; height:1px; background: var(--ink); }
+  .sec-title h2{ font-family:var(--display); font-weight:600; font-size: 22px; letter-spacing:.18em; margin:0; color:var(--ink); text-transform:uppercase; }
+  .sec-title .kicker{ font-family:var(--mono); font-size:10px; letter-spacing:.28em; text-transform:uppercase; color:var(--ink-mute); }
+  .sec-title .ornament{ font-family:var(--display); color:var(--blue); font-size:18px; letter-spacing:.4em; flex:1; text-align:center; opacity:.6; }
+  .sec-title .right{ margin-left:auto; font-family:var(--mono); font-size:10px; letter-spacing:.22em; text-transform:uppercase; color:var(--ink-soft); }
+
+  /* Feature */
+  .feature{ margin-top:20px; display:grid; grid-template-columns: 1.45fr 1fr; gap: 28px; align-items:start; }
+  .feature-text .eyebrow{ font-family:var(--mono); font-size:10px; letter-spacing:.3em; text-transform:uppercase; color:var(--ink-soft); display:flex; gap:12px; align-items:center; }
+  .feature-text .eyebrow .tag{ border:1px solid var(--ink); padding:3px 8px; font-size:9px; color:var(--ink); }
+  .feature-text h3{ font-family:var(--display); font-weight:600; font-size: 36px; line-height:1.05; letter-spacing:.01em; margin: 12px 0 14px; color:var(--ink); }
+  .feature-text h3 .arr{ color: var(--blue); font-family: var(--mono); font-weight:300; font-size:.7em; vertical-align:middle; margin: 0 6px; }
+  .feature-text p.dek{ font-family:var(--sans); font-size:13.5px; line-height:1.6; color:var(--ink-soft); max-width:560px; }
+  .feature-text p.dek::first-letter{ font-family: var(--display); font-size: 42px; float:left; line-height:.85; padding: 4px 8px 0 0; color: var(--ink); font-weight:600; }
+  .quad{ margin-top:18px; display:grid; grid-template-columns: 1fr 1fr; border-top:1px solid var(--ink); border-left:1px solid var(--ink); }
+  .quad .cell{ border-right:1px solid var(--ink); border-bottom:1px solid var(--ink); padding:14px 16px; }
+  .quad .k{ font-family:var(--mono); font-size:9.5px; letter-spacing:.28em; text-transform:uppercase; color:var(--ink-soft); margin-bottom:8px;}
+  .quad .v{ font-family:var(--display); font-size:14px; color:var(--ink); letter-spacing:.06em; }
+  .quad .v.num{ font-size:26px; font-weight:600; }
+
+  /* Index card */
+  .index-card{ border:1px solid var(--ink); background: var(--paper); padding: 18px; position:relative; }
+  .index-card-tag{ position:absolute; top:-10px; left:18px; background: var(--paper); padding: 2px 8px; font-family: var(--display); font-size: 11px; letter-spacing:.2em; color: var(--ink); border:1px solid var(--ink); }
+  .index-composition{ margin-top:8px; }
+  .index-stock{ display:flex; justify-content:space-between; align-items:center; padding: 12px 0; border-bottom:1px solid var(--rule); font-family:var(--mono); font-size:12px; }
+  .index-stock:last-child{ border-bottom:none; }
+  .stock-ticker{ font-family:var(--display); font-size:14px; font-weight:600; letter-spacing:.1em; color:var(--ink); }
+  .stock-full{ font-size:11px; color:var(--ink-soft); letter-spacing:.06em; margin-left:10px; }
+  .stock-weight{ font-family:var(--display); font-size:18px; font-weight:600; color:var(--blue); }
+  .stock-price{ color:var(--ink-soft); font-size:11px; letter-spacing:.06em; }
+  .stock-change{ font-size:11px; letter-spacing:.06em; }
+  .stock-change.up{ color: var(--green); }
+  .stock-change.dn{ color: var(--red); }
+  .index-footer{ margin-top:14px; padding-top:12px; border-top:1px solid var(--ink); display:flex; justify-content:space-between; font-family:var(--mono); font-size:9.5px; letter-spacing:.22em; text-transform:uppercase; color: var(--ink-soft); }
+  .index-footer b{ color:var(--ink); font-weight:500; }
+
+  /* Pipeline */
+  .pipeline{ margin-top:14px; border: 1px solid var(--ink); background: var(--paper); }
+  .pipe-grid{ display:grid; grid-template-columns: repeat(5, 1fr); }
+  .pipe-step{ padding: 18px 16px; border-right: 1px solid var(--rule); position:relative; }
+  .pipe-step:last-child{ border-right:none;}
+  .pipe-step .roman{ font-family:var(--display); font-size:11px; letter-spacing:.1em; color: var(--blue); margin-bottom:8px; display:inline-block; border-bottom: 1px solid var(--rule); padding-bottom:4px; }
+  .pipe-step .glyph{ width:30px; height:30px; margin-bottom:12px; color:var(--ink); }
+  .pipe-step h4{ font-family:var(--display); font-size:14px; letter-spacing:.16em; text-transform:uppercase; margin:0 0 6px; font-weight:600; }
+  .pipe-step p{ font-family:var(--mono); font-size:10px; letter-spacing:.12em; color:var(--ink-soft); margin:0; line-height:1.5; }
+  .pipe-arrow{ position:absolute; right:-7px; top:48px; width:13px; height:13px; background: var(--paper); border-top: 1px solid var(--ink); border-right: 1px solid var(--ink); transform: rotate(45deg); z-index:2; }
+  .pipe-step:last-child .pipe-arrow{ display:none; }
+
+  /* Table */
+  table.indices{ width:100%; border-collapse: collapse; margin-top:8px;}
+  table.indices th{ text-align:left; font-family:var(--mono); font-size:9.5px; letter-spacing:.24em; text-transform:uppercase; color:var(--ink-soft); padding: 10px 12px 8px; border-bottom: 1px solid var(--ink); font-weight:400; }
+  table.indices td{ padding: 14px 12px; border-bottom: 1px solid var(--rule); font-family:var(--sans); font-size:13px; color:var(--ink); vertical-align: top; }
+  table.indices tr:hover td{ background: rgba(184,200,232,.18); cursor:pointer; }
+  td.idx-id{ font-family:var(--mono); font-size:11px; color:var(--ink-soft); letter-spacing:.1em; width:80px;}
+  td.idx-name{ font-family:var(--display); font-size:14px; letter-spacing:.04em; font-weight:500; }
+  td.idx-stocks{ font-family:var(--mono); font-size:11px; color:var(--ink-soft); letter-spacing:.06em; }
+  td.idx-tvl{ font-family:var(--display); font-size:16px; font-weight:600; }
+  td.idx-perf{ font-family:var(--mono); font-size:12px; letter-spacing:.05em; }
+  td.idx-perf.up{ color: var(--green); }
+  td.idx-perf.dn{ color: var(--red); }
+  td.idx-fee{ font-family:var(--mono); font-size:12px; color:var(--ink-soft); }
+  .pill{ font-family:var(--mono); font-size:9.5px; letter-spacing:.18em; text-transform:uppercase; padding: 3px 9px; border: 1px solid var(--ink); display:inline-block; }
+  .pill.live{ border-color: var(--green); color: var(--green); }
+  .pill.new{ background: var(--ink); color: var(--paper); border-color: var(--ink); }
+  .pill.hot{ border-color: var(--ochre); color: var(--ochre); }
+
+  /* Right rail */
+  aside.rail{
+    border-left: 1px solid var(--rule); padding: 26px 22px;
+    display:flex; flex-direction:column; gap:24px;
+    background: linear-gradient(180deg, rgba(184,200,232,.08), transparent 25%);
+  }
+  .rail-section h3{ font-family:var(--display); font-size:14px; letter-spacing:.18em; text-transform:uppercase; margin:0 0 4px; font-weight:600; display:flex; align-items:center; gap:10px; border-bottom: 1px solid var(--ink); padding-bottom: 8px; }
+  .rail-section h3 .deco{ font-weight:400; color: var(--blue); letter-spacing:.2em;}
+  .rail-kicker{ font-family:var(--mono); font-size:9.5px; letter-spacing:.26em; text-transform:uppercase; color:var(--ink-mute); margin-bottom:10px; }
+
+  /* Terminal mini (rail) */
+  .terminal-mini{
+    background: var(--paper-2); border: 1px solid var(--ink); padding: 14px;
+    font-family: var(--mono); font-size: 11px; line-height: 1.7; color: var(--ink-soft); position:relative; overflow:hidden;
+  }
+  .terminal-mini::before{
+    content:"ATLAS TERMINAL"; position:absolute; top:0; left:0; right:0;
+    background: var(--paper-3); padding: 6px 14px; font-size:9px; letter-spacing:.3em; text-transform:uppercase;
+    color: var(--ink-soft); border-bottom: 1px solid var(--ink);
+    font-family:var(--display); font-weight:600;
+  }
+  .terminal-mini .tbody{ padding-top:28px; }
+  .terminal-mini .prompt{ color: var(--blue); font-weight:600; }
+  .terminal-mini .response{ color: var(--ink-soft); }
+  .terminal-mini .success{ color: var(--green); font-weight:500; }
+
+  /* Feed items */
+  .feed-item{ padding: 12px 0; border-bottom: 1px solid var(--rule); display:flex; flex-direction:column; gap:4px; }
+  .feed-item:last-child{ border-bottom:none; }
+  .feed-row{ display:flex; justify-content:space-between; align-items:center;}
+  .feed-action{ font-family:var(--display); font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink); font-weight:500;}
+  .feed-tag{ font-family:var(--mono); font-size:9px; letter-spacing:.2em; text-transform:uppercase; padding: 3px 7px; border:1px solid var(--ink-soft); color: var(--ink-soft);}
+  .feed-tag.buy{ color: var(--green); border-color: var(--green); }
+  .feed-tag.sell{ color: var(--red); border-color: var(--red); }
+  .feed-tag.create{ color: var(--blue); border-color: var(--blue); }
+  .feed-detail{ font-family:var(--sans); font-size:12px; color:var(--ink-soft); line-height:1.45;}
+  .feed-time{ font-family:var(--mono); font-size:10px; letter-spacing:.06em; color:var(--ink-mute); }
+
+  /* Treasury mini */
+  .treas-value{ font-family:var(--display); font-weight:600; font-size: 28px; color:var(--ink); margin: 8px 0 4px; font-feature-settings:"tnum"; }
+  .treas-value .unit{ font-size:14px; color:var(--ink-soft); margin-left:4px;}
+  .treas-delta{ font-family:var(--mono); font-size:10px; color:var(--green); letter-spacing:.06em; }
+  .treas-breakdown{ margin-top:12px; padding-top:10px; border-top:1px solid var(--rule); }
+  .treas-row{ display:flex; justify-content:space-between; padding: 6px 0; font-family:var(--mono); font-size:11px; color:var(--ink-soft); letter-spacing:.06em; }
+  .treas-row b{ color:var(--ink); font-weight:500; }
+
+  .colophon{
+    margin-top:48px; padding-top:14px; border-top: 1px solid var(--ink);
+    display:flex; justify-content:space-between; align-items:center;
+    font-family:var(--mono); font-size:9.5px; letter-spacing:.24em; text-transform:uppercase; color: var(--ink-soft);
+  }
+  .colophon .ornament{ font-family: var(--display); letter-spacing:.4em; color: var(--blue); }
+
+  .glyph-line{ stroke: currentColor; stroke-width:1.2; fill:none; }
+  .glyph-fill{ fill: currentColor; }
+
+  /* ============ FULL TERMINAL ============ */
+  .terminal-full{
+    --term-line: 28px;
+    --term-offset: 0px;
+    display:flex; flex-direction:column; height: calc(100vh - 52px); margin-top:18px;
+    border: 2px solid var(--ink); background: var(--paper); position:relative; overflow:hidden;
+  }
+  .terminal-full::before{
+    content:""; position:absolute; inset:0; pointer-events:none; z-index:0;
+    background:
+      repeating-linear-gradient(180deg, transparent 0 calc(var(--term-line) - 1px), var(--rule-soft) calc(var(--term-line) - 1px) var(--term-line)),
+      linear-gradient(90deg, transparent 58px, var(--rule) 58px 59px, transparent 59px);
+    background-position-y: calc(var(--term-offset) - 8px);
+    opacity:.45;
+  }
+  .terminal-header{
+    background: var(--paper-2); padding: 14px 24px; display:flex; justify-content:space-between; align-items:center;
+    border-bottom: 2px solid var(--ink); position:relative; z-index:1;
+  }
+  .terminal-header::after{
+    content:""; position:absolute; left:0; right:0; bottom:-5px; height:1px; background: var(--ink); opacity:.4;
+  }
+  .terminal-header .title{
+    font-family:var(--display); font-size:14px; letter-spacing:.22em; text-transform:uppercase; color: var(--ink);
+    display:flex; align-items:center; gap:12px; font-weight:600;
+  }
+  .terminal-header .title .dot{ width:8px; height:8px; border-radius:50%; background: var(--green); border:1px solid var(--ink); position:relative; }
+  .terminal-header .title .dot::after{ content:""; position:absolute; inset:-4px; border-radius:50%; border:1px solid var(--green); opacity:.4; animation: pulse 2.4s ease-out infinite; }
+  .terminal-header .info{
+    font-family:var(--mono); font-size:9.5px; letter-spacing:.24em; text-transform:uppercase; color: var(--ink-soft);
+  }
+  .terminal-messages{
+    --term-line: 28px;
+    flex:1; overflow-y:auto; padding: 20px 28px 20px 68px; display:flex; flex-direction:column; gap:0;
+    font-family: var(--mono); font-size: 13px; line-height: var(--term-line); color: var(--ink);
+    position:relative; z-index:1;
+  }
+  .terminal-messages .system-msg{
+    color: var(--ink-mute); font-size:10px; letter-spacing:.16em;
+    line-height: var(--term-line); height: var(--term-line);
+    border-bottom: 1px solid var(--rule); margin-bottom:0;
+    font-family:var(--mono); text-transform:uppercase;
+    overflow:hidden; white-space:nowrap; text-overflow:ellipsis;
+  }
+  .terminal-messages .user-msg{
+    color: var(--ink); font-weight:500;
+    line-height: var(--term-line); min-height: var(--term-line);
+    padding-top: 0;
+  }
+  .terminal-messages .user-msg .prompt{
+    color: var(--blue); font-weight:600; font-family:var(--display); font-size:14px; letter-spacing:.1em;
+  }
+  .terminal-messages .agent-msg{
+    color: var(--ink-soft);
+    padding-left: 22px;
+    border-left: 2px solid var(--blue);
+    line-height: var(--term-line); min-height: var(--term-line);
+    font-size:12.5px; letter-spacing:.03em;
+  }
+  .terminal-messages .success-msg{
+    color: var(--green); font-weight:500;
+    line-height: var(--term-line); min-height: var(--term-line);
+    padding-left: 22px;
+    border-left: 2px solid var(--green);
+  }
+  .terminal-messages .error-msg{
+    color: var(--red); font-weight:500;
+    line-height: var(--term-line); min-height: var(--term-line);
+    padding-left: 22px;
+    border-left: 2px solid var(--red);
+  }
+  .terminal-messages .thinking{
+    color: var(--ink-mute); font-style:italic; font-size:11px; letter-spacing:.1em;
+    line-height: var(--term-line); height: var(--term-line);
+  }
+  /* spacer between message groups */
+  .terminal-messages .msg-spacer{
+    height: var(--term-line);
+  }
+  /* confirm action buttons */
+  .terminal-messages .confirm-wrap{
+    display:flex; gap:10px; padding: 8px 0 4px 22px; align-items:center;
+  }
+  .confirm-wrap .confirm-btn{
+    font-family:var(--mono); font-size:10px; letter-spacing:.18em; text-transform:uppercase;
+    padding: 8px 18px; border:1px solid var(--ink); cursor:pointer; transition: all .15s;
+  }
+  .confirm-wrap .confirm-btn.yes{
+    background: var(--ink); color: var(--paper);
+  }
+  .confirm-wrap .confirm-btn.yes:hover{ background: var(--green); border-color: var(--green); }
+  .confirm-wrap .confirm-btn.no{
+    background: var(--paper); color: var(--ink-soft);
+  }
+  .confirm-wrap .confirm-btn.no:hover{ background: var(--red); color: var(--paper); border-color: var(--red); }
+  .confirm-wrap .confirm-label{
+    font-family:var(--mono); font-size:10px; color:var(--ink-mute); letter-spacing:.12em;
+  }
+  .terminal-input-wrap{
+    border-top: 2px solid var(--ink); padding: 18px 24px 18px 24px; display:flex; align-items:center; gap:14px;
+    background: var(--paper-2); position:relative; z-index:1;
+  }
+  .terminal-input-wrap::before{
+    content:""; position:absolute; left:0; right:0; top:-5px; height:1px; background: var(--ink); opacity:.4;
+  }
+  .terminal-input-wrap .prompt-char{
+    font-family:var(--display); font-size:18px; color: var(--blue); font-weight:600; letter-spacing:.1em;
+  }
+  .terminal-input{
+    flex:1; background:none; border:none; outline:none;
+    font-family: var(--mono); font-size: 14px; color: var(--ink); letter-spacing:.04em;
+    caret-color: var(--blue);
+  }
+  .terminal-input::placeholder{ color: var(--ink-mute); letter-spacing:.08em; font-style:italic; }
+  .terminal-send{
+    font-family:var(--mono); font-size:10px; letter-spacing:.22em; text-transform:uppercase;
+    background: var(--ink); color: var(--paper); border:1px solid var(--ink); padding: 10px 20px; cursor:pointer;
+    transition: all .15s ease;
+  }
+  .terminal-send:hover{ background: var(--ink-2); box-shadow: 2px 2px 0 var(--ink); }
+
+  /* Stocks grid view */
+  .stocks-grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap:16px; margin-top:16px; }
+  .stock-card{
+    border:1px solid var(--ink); padding:18px; background: var(--paper); cursor:pointer;
+    transition: all .15s ease; position:relative;
+  }
+  .stock-card:hover{ box-shadow: 3px 3px 0 var(--ink-2); transform: translateY(-2px); }
+  .stock-card .sc-ticker{ font-family:var(--display); font-size:20px; font-weight:600; letter-spacing:.12em; }
+  .stock-card .sc-name{ font-family:var(--mono); font-size:10px; color:var(--ink-soft); letter-spacing:.1em; text-transform:uppercase; margin-top:4px; }
+  .stock-card .sc-price{ font-family:var(--display); font-size:28px; font-weight:600; margin-top:14px; font-feature-settings:"tnum"; }
+  .stock-card .sc-change{ font-family:var(--mono); font-size:12px; margin-top:6px; letter-spacing:.06em; }
+  .stock-card .sc-change.up{ color:var(--green); }
+  .stock-card .sc-change.dn{ color:var(--red); }
+
+  /* Portfolio */
+  .portfolio-header{ display:grid; grid-template-columns: 1fr 1fr; gap:20px; margin-top:20px; }
+  .port-card{ border:1px solid var(--ink); padding:22px; }
+  .port-card .label{ font-family:var(--mono); font-size:10px; letter-spacing:.28em; text-transform:uppercase; color:var(--ink-soft); margin-bottom:10px; }
+  .port-card .big{ font-family:var(--display); font-size:42px; font-weight:600; font-feature-settings:"tnum"; }
+  .port-card .big .unit{ font-size:20px; color:var(--ink-soft); margin-left:4px; }
+  .port-card .delta{ font-family:var(--mono); font-size:11px; margin-top:8px; }
+
+  .holdings-table{ width:100%; border-collapse:collapse; margin-top:16px; }
+  .holdings-table th{ text-align:left; font-family:var(--mono); font-size:9.5px; letter-spacing:.24em; text-transform:uppercase; color:var(--ink-soft); padding:10px 12px 8px; border-bottom:1px solid var(--ink); font-weight:400; }
+  .holdings-table td{ padding:14px 12px; border-bottom:1px solid var(--rule); font-family:var(--sans); font-size:13px; }
+  .holdings-table tr:hover td{ background:rgba(184,200,232,.18); }
+
+  @media (max-width: 1180px){ .app, .app.has-rail{ grid-template-columns: 200px 1fr; } aside.rail{ display:none; } }
+  @media (max-width: 768px){ .app, .app.has-rail{ grid-template-columns: 1fr; } aside.nav{ display:none; } .stats{ grid-template-columns: repeat(2, 1fr); } .ov-stats{ grid-template-columns: repeat(2, 1fr); } .ov-grid{ grid-template-columns: 1fr; } .ov-cta-grid{ grid-template-columns: 1fr; } .feature{ grid-template-columns: 1fr; } .pipe-grid{ grid-template-columns: repeat(2, 1fr); } }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useRef, useEffect } = React;
+
+// ─── ROBINHOOD CHAIN MAINNET ───
+const RH_RPC = 'https://rpc.mainnet.chain.robinhood.com';
+const RH_EXPLORER = 'https://robinhoodchain.blockscout.com/token/';
+
+// Canonical Robinhood Stock Tokens from https://api.robinhood.com/rhj/assets
+let STOCKS = [
+  { ticker:'TSLA', name:'Tesla · Robinhood Token', price:187.34, change:-1.12, token:'0x322F0929c4625eD5bAd873c95208D54E1c003b2d', live:true },
+  { ticker:'AMZN', name:'Amazon · Robinhood Token', price:191.75, change:2.11, token:'0x12f190a9F9d7D37a250758b26824B97CE941bF54', live:true },
+  { ticker:'NFLX', name:'Netflix · Robinhood Token', price:634.20, change:1.92, token:'0xE0444EF8BF4eD74f74FD73686e2ddF4C1c5591E8', live:true },
+  { ticker:'AMD', name:'AMD · Robinhood Token', price:162.44, change:2.88, token:'0x86923f96303D656E4aa86D9d42D1e57ad2023fdC', live:true },
+  { ticker:'PLTR', name:'Palantir Technologies · Robinhood Token', price:118.50, change:3.72, token:'0x894E1EC2D74FFE5AEF8Dc8A9e84686acCB964F2A', live:true },
+];
+
+// Verified Robinhood Chain Mainnet deployments. Contracts are not externally audited.
+const FACTORY_ADDRESS = '0xf920Cd56a8a39a59792103BA45dd5351d31e5f0c';
+const INDEX_ROUTER_ADDRESS = '0x606f0599280f2a429895c4D2a040466dD57CeB7A';
+const LIFI_DIAMOND = '0xB477751B76CF82d00a686A1232f5fCD772414Af3';
+
+const PRICES_API = '/api/prices';
+async function fetchLivePrices() {
+  try {
+    const tickers = STOCKS.map(stock => stock.ticker).join(',');
+    const res = await fetch(PRICES_API + '?symbols=' + tickers);
+    if (!res.ok) throw new Error('API error');
+    const data = await res.json();
+    STOCKS = STOCKS.map(stock => data[stock.ticker]?.price
+      ? { ...stock, price: data[stock.ticker].price, change: data[stock.ticker].change }
+      : stock);
+    return true;
+  } catch (error) {
+    console.warn('Live prices unavailable, using cached defaults:', error.message);
+    return false;
+  }
+}
+
+function useLivePrices() {
+  const [pricesLoaded, setPricesLoaded] = useState(false);
+  const [lastUpdate, setLastUpdate] = useState(null);
+  useEffect(() => {
+    const refresh = () => fetchLivePrices().then(ok => { setPricesLoaded(ok); if (ok) setLastUpdate(new Date()); });
+    refresh();
+    const interval = setInterval(refresh, 30000);
+    return () => clearInterval(interval);
+  }, []);
+  return { pricesLoaded, lastUpdate };
+}
+
+const ERC20_ABI = ['function balanceOf(address) view returns (uint256)', 'function decimals() view returns (uint8)', 'function uiMultiplier() view returns (uint256)', 'function transfer(address to, uint256 amount) returns (bool)', 'function approve(address spender, uint256 amount) returns (bool)', 'function allowance(address owner, address spender) view returns (uint256)', 'function symbol() view returns (string)', 'function name() view returns (string)', 'function totalSupply() view returns (uint256)'];
+const INDEX_TOKEN_ABI = [...ERC20_ABI, 'function mint(uint256 amount) returns (uint256)', 'function burn(uint256 amount)', 'function getStocks() view returns (address[])', 'function getWeights() view returns (uint256[])', 'function requiredUnderlying(uint256 component, uint256 indexAmount) view returns (uint256)', 'function creator() view returns (address)', 'function feeBps() view returns (uint256)', 'function treasury() view returns (address)', 'function stockCount() view returns (uint256)', 'function stocks(uint256) view returns (address)', 'function weights(uint256) view returns (uint256)'];
+const FACTORY_ABI = ['function createIndex(string name, string symbol, address[] stocks, uint256[] weights, uint256 feeBps) returns (address)', 'function totalIndices() view returns (uint256)', 'function allIndices(uint256) view returns (address)', 'function getCreatorIndices(address creator) view returns (address[])', 'function isIndex(address) view returns (bool)', 'event IndexCreated(address indexed indexToken, string name, string symbol, address indexed creator, address[] stocks, uint256[] weights, uint256 feeBps)'];
+const INDEX_ROUTER_ABI = ['function mintIndexWithETH(address indexToken, uint256 grossAmount, tuple(address target, uint256 value, bytes data)[] swaps) payable returns (uint256)', 'function sellIndexForETH(address indexToken, uint256 indexAmount, tuple(address target, uint256 value, bytes data)[] swaps, uint256 minimumETH) returns (uint256)', 'function lifiDiamond() view returns (address)'];
+
+let DEPLOYED_INDICES = [];
+const STOCK_UI_MULTIPLIERS = {};
+const RH_NETWORK = {
+  chainId: '0x1237',
+  chainName: 'Robinhood Chain',
+  rpcUrls: [RH_RPC],
+  nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+  blockExplorerUrls: ['https://robinhoodchain.blockscout.com'],
+};
+
+async function connectWallet() {
+  if (!window.ethereum) { alert('Please install MetaMask to connect.'); return null; }
+  try {
+    await window.ethereum.request({ method: 'eth_requestAccounts' });
+    // Switch to Robinhood Chain
+    try {
+      await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: RH_NETWORK.chainId }] });
+    } catch (switchErr) {
+      if (switchErr.code === 4902) {
+        await window.ethereum.request({ method: 'wallet_addEthereumChain', params: [RH_NETWORK] });
+      } else { throw switchErr; }
+    }
+    const provider = new ethers.BrowserProvider(window.ethereum);
+    const signer = await provider.getSigner();
+    const address = await signer.getAddress();
+    return { provider, signer, address };
+  } catch (err) { console.error('Wallet connection failed:', err); return null; }
+}
+
+async function loadDeployedIndices(provider) {
+  if (!FACTORY_ADDRESS) {
+    DEPLOYED_INDICES = [];
+    return [];
+  }
+  try {
+    const factory = new ethers.Contract(FACTORY_ADDRESS, FACTORY_ABI, provider);
+    const total = await factory.totalIndices();
+    const indices = [];
+    for (let i = 0; i < Number(total); i++) {
+      const addr = await factory.allIndices(i);
+      const token = new ethers.Contract(addr, INDEX_TOKEN_ABI, provider);
+      const [name, symbol, supply, creator, feeBps, stockAddrs, weightVals] = await Promise.all([
+        token.name(), token.symbol(), token.totalSupply(),
+        token.creator(), token.feeBps(),
+        token.getStocks(), token.getWeights(),
+      ]);
+      // Map stock addresses to tickers
+      const stockTickers = stockAddrs.map(a => {
+        const s = STOCKS.find(st => st.token && st.token.toLowerCase() === a.toLowerCase());
+        return s ? s.ticker : a.slice(0,8);
+      });
+      indices.push({
+        address: addr, name, symbol: '$' + symbol, ticker: '$' + symbol,
+        totalSupply: parseFloat(ethers.formatEther(supply)),
+        creator, feeBps: Number(feeBps),
+        stocks: stockTickers,
+        stockAddresses: [...stockAddrs],
+        weights: weightVals.map(w => Number(w)),
+        live: true, onChain: true,
+      });
+    }
+    DEPLOYED_INDICES = indices;
+    return indices;
+  } catch (err) { console.warn('Failed to load indices:', err); return []; }
+}
+
+async function fetchBalances(providerOrRpc, address) {
+  const provider = typeof providerOrRpc === 'string'
+    ? new ethers.JsonRpcProvider(providerOrRpc)
+    : providerOrRpc;
+  const liveStocks = STOCKS.filter(s => s.live && s.token);
+  const results = {};
+  // Native ETH balance
+  const nativeBal = await provider.getBalance(address);
+  results['ETH'] = parseFloat(ethers.formatEther(nativeBal));
+  // ERC-20 stock balances
+  await Promise.all(liveStocks.map(async (s) => {
+    try {
+      const c = new ethers.Contract(s.token, ERC20_ABI, provider);
+      const bal = await c.balanceOf(address);
+      const dec = await c.decimals();
+      let multiplier = StockTokenUnits.SCALE;
+      try {
+        const onChainMultiplier = await c.uiMultiplier();
+        if (onChainMultiplier > 0n) multiplier = onChainMultiplier;
+      } catch {
+        // A canonical token should implement ERC-8056; 1e18 preserves raw ERC-20 units if unavailable.
+      }
+      STOCK_UI_MULTIPLIERS[s.ticker] = multiplier;
+      const uiBalance = StockTokenUnits.rawToUiUnits(bal, multiplier);
+      results[s.ticker] = parseFloat(ethers.formatUnits(uiBalance, dec));
+    } catch { results[s.ticker] = 0; }
+  }));
+  // Index token balances
+  await Promise.all(DEPLOYED_INDICES.map(async (idx) => {
+    try {
+      const c = new ethers.Contract(idx.address, ERC20_ABI, provider);
+      const bal = await c.balanceOf(address);
+      results[idx.symbol] = parseFloat(ethers.formatEther(bal));
+    } catch { results[idx.symbol] = 0; }
+  }));
+  return results;
+}
+
+function useWallet() {
+  const [wallet, setWallet] = useState(null);
+  const [balances, setBalances] = useState({});
+  const [loading, setLoading] = useState(false);
+
+  const connect = async () => {
+    setLoading(true);
+    const w = await connectWallet();
+    if (w) {
+      setWallet(w);
+      await loadDeployedIndices(w.provider);
+      const bals = await fetchBalances(w.provider, w.address);
+      setBalances(bals);
+      // Listen for account/chain changes
+      window.ethereum.on('accountsChanged', () => window.location.reload());
+      window.ethereum.on('chainChanged', () => window.location.reload());
+    }
+    setLoading(false);
+  };
+
+  const refresh = async () => {
+    if (!wallet) return;
+    const bals = await fetchBalances(wallet.provider, wallet.address);
+    setBalances(bals);
+  };
+
+  return { wallet, balances, loading, connect, refresh };
+}
+
+// ─── SERVER-SIDE AI AGENT ───
+async function callAtlasAI(history, userBalances) {
+  const res = await fetch('/api/chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      history: history.slice(-20),
+      context: {
+        stocks: STOCKS.map(({ ticker, name, price, change, live }) => ({ ticker, name, price, change, live })),
+        indices: DEPLOYED_INDICES.map(({ address, name, symbol, stocks, totalSupply, feeBps }) => ({ address, name, symbol, stocks, totalSupply, feeBps })),
+        balances: userBalances || {},
+      },
+    }),
+  });
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const error = new Error(data.message || 'AI terminal is unavailable.');
+    error.code = data.error || 'AI_UNAVAILABLE';
+    throw error;
+  }
+  return data;
+}
+
+async function requestAtlasSwapQuote(body) {
+  const response = await fetch('/api/swap-quote', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.message || 'No executable liquidity route is available.');
+  return data;
+}
+
+async function requestAtlasIndexQuote(body) {
+  const response = await fetch('/api/index-quote', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.message || 'No executable index route is available.');
+  return data;
+}
+
+
+function buildConfirmation(parsed) {
+  const { action, data } = parsed;
+
+  if (action === 'buy_stock' && data?.ticker && Number(data?.ethAmount) > 0) {
+    const ticker = data.ticker.toUpperCase().replace(/^\$/, '');
+    const stock = STOCKS.find(item => item.ticker === ticker);
+    if (stock) return {
+      action: 'buy_stock', data: { ...data, stock },
+      preview: [
+        { type:'agent', text: parsed.reply },
+        { type:'agent', text: `Spend ${data.ethAmount} ETH to buy ${stock.ticker} through a validated LI.FI-aggregated mainnet quote (0.5% max slippage).` },
+      ],
+      onConfirm: [{ type:'success', text: 'Stock purchase submitted.' }],
+      onCancel: [{ type:'error', text: 'Order cancelled.' }],
+    };
+  }
+
+  if (action === 'sell_stock' && data?.ticker && Number(data?.qty) > 0) {
+    const ticker = data.ticker.toUpperCase().replace(/^\$/, '');
+    const stock = STOCKS.find(item => item.ticker === ticker);
+    if (stock) return {
+      action: 'sell_stock', data: { ...data, stock },
+      preview: [
+        { type:'agent', text: parsed.reply },
+        { type:'agent', text: `Sell ${data.qty} UI-adjusted ${stock.ticker} for ETH through a validated LI.FI-aggregated mainnet quote (0.5% max slippage).` },
+      ],
+      onConfirm: [{ type:'success', text: 'Stock sale submitted.' }],
+      onCancel: [{ type:'error', text: 'Sale cancelled.' }],
+    };
+  }
+
+  if (action === 'buy_index' && data?.indexTicker && Number(data?.qty) > 0) {
+    const ticker = data.indexTicker.toUpperCase().replace(/^\$/, '');
+    const index = DEPLOYED_INDICES.find(item => item.symbol.replace(/^\$/, '').toUpperCase() === ticker);
+    if (index) return {
+      action: 'buy_index', data: { ...data, index },
+      preview: [
+        { type:'agent', text: parsed.reply },
+        { type:'agent', text: `Mint ${data.qty} ${index.symbol} by depositing its canonical Stock Token collateral.` },
+      ],
+      onConfirm: [{ type:'success', text: `Mint submitted for ${data.qty} ${index.symbol}.` }],
+      onCancel: [{ type:'error', text: 'Order cancelled.' }],
+    };
+  }
+
+  if (action === 'sell_index' && data?.indexTicker && Number(data?.qty) > 0) {
+    const ticker = data.indexTicker.toUpperCase().replace(/^\$/, '');
+    const index = DEPLOYED_INDICES.find(item => item.symbol.replace(/^\$/, '').toUpperCase() === ticker);
+    if (index) return {
+      action: 'sell_index', data: { ...data, index },
+      preview: [
+        { type:'agent', text: parsed.reply },
+        { type:'agent', text: `Burn ${data.qty} ${index.symbol} and redeem its deterministic Stock Token basket.` },
+      ],
+      onConfirm: [{ type:'success', text: `Redemption submitted for ${data.qty} ${index.symbol}.` }],
+      onCancel: [{ type:'error', text: 'Redemption cancelled.' }],
+    };
+  }
+
+  if (action === 'create_index' && data?.indexName && data?.indexStocks?.length >= 2) {
+    const w = Math.floor(100 / data.indexStocks.length);
+    const symbol = data.indexTicker || data.indexName.replace(/\s+/g,'').slice(0,4).toUpperCase();
+    return {
+      action: 'create_index', data: { ...data, symbol },
+      preview: [
+        { type:'agent', text: parsed.reply },
+        { type:'agent', text: `Index: "${data.indexName}" ($${symbol})` },
+        { type:'agent', text: `Composition: ${data.indexStocks.map(t => `${t} ${w}%`).join(' | ')}` },
+        { type:'agent', text: `Fee: 0.3% per mint/redeem` },
+        { type:'agent', text: `This will deploy a real ERC-20 token on Robinhood Chain.` },
+      ],
+      onConfirm: [
+        { type:'success', text: `\u2713 Index "$${symbol}" deployed on Robinhood Chain!` },
+      ],
+      onCancel: [
+        { type:'error', text: 'Index creation cancelled.' },
+      ],
+    };
+  }
+
+  if (action === 'send' && data?.toAddress && data?.sendAmount && data?.sendToken) {
+    return {
+      action: 'send', data,
+      preview: [
+        { type:'agent', text: parsed.reply },
+        { type:'agent', text: `Send ${data.sendAmount} ${data.sendToken} to ${data.toAddress.slice(0,6)}...${data.toAddress.slice(-4)}` },
+      ],
+      onConfirm: [
+        { type:'success', text: `\u2713 Transaction sent. Tokens transferred successfully.` },
+      ],
+      onCancel: [
+        { type:'error', text: 'Transfer cancelled.' },
+      ],
+    };
+  }
+
+  return null; // no confirmation needed
+}
+
+// ─── EXECUTE NON-CONFIRM ACTIONS ───
+function executeAction(parsed, balances) {
+  const { action, data } = parsed;
+  const results = [];
+
+  if (action === 'portfolio') {
+    const liveStocks = STOCKS.filter(s => s.live);
+    if (balances && Object.keys(balances).length > 0) {
+      const holdings = liveStocks.filter(s => (balances[s.ticker] || 0) > 0);
+      const totalVal = holdings.reduce((s, st) => s + (balances[st.ticker] || 0) * st.price, 0);
+      results.push({ type:'agent', text: 'Your on-chain portfolio (Robinhood Chain Mainnet):' });
+      results.push({ type:'agent', text: '\u250C\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510' });
+      results.push({ type:'agent', text: `\u2502 Total Value:  $${totalVal.toFixed(2).padEnd(20)}\u2502` });
+      results.push({ type:'agent', text: `\u2502 ETH (gas):    ${(balances.ETH || 0).toFixed(4).padEnd(20)}\u2502` });
+      results.push({ type:'agent', text: '\u251C\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2524' });
+      holdings.forEach(s => {
+        const qty = (balances[s.ticker] || 0).toFixed(2);
+        const val = '$' + ((balances[s.ticker] || 0) * s.price).toFixed(2);
+        results.push({ type:'agent', text: `\u2502 ${s.ticker.padEnd(8)} ${qty.padStart(6)}   ${val.padStart(10)}   ${(s.change > 0 ? '+' : '') + s.change + '%'}`.padEnd(37) + '\u2502' });
+      });
+      if (holdings.length === 0) results.push({ type:'agent', text: '\u2502 No stock holdings found.             \u2502' });
+      results.push({ type:'agent', text: '\u2514\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2518' });
+    } else {
+      results.push({ type:'agent', text: 'Connect your wallet to view your portfolio. Click "Connect Wallet" in the sidebar.' });
+    }
+    return results;
+  }
+
+  if (action === 'price' && data?.ticker) {
+    const stock = STOCKS.find(s => s.ticker === data.ticker.toUpperCase());
+    if (stock) {
+      results.push({ type:'agent', text: `${stock.ticker} · ${stock.name}` });
+      results.push({ type:'agent', text: `Price: $${stock.price.toFixed(2)}` });
+      results.push({ type:'agent', text: `24h: ${stock.change > 0 ? '+' : ''}${stock.change}%` });
+      return results;
+    }
+  }
+
+  // Default: just show the reply
+  results.push({ type:'agent', text: parsed.reply || 'I couldn\'t process that request.' });
+  return results;
+}
+
+// ─── VIEWS ───
+
+function OverviewView({ setView, wallet, balances, connectW, walletLoading, refreshBalances }) {
+  const liveStocks = STOCKS.filter(s => s.live);
+  const topIndex = DEPLOYED_INDICES[0];
+  const statIcon = (d) => React.createElement('svg',{viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:2,strokeLinecap:'round',strokeLinejoin:'round'},React.createElement('path',{d}));
+  const connected = !!wallet;
+  const portfolioValue = connected ? liveStocks.reduce((sum, s) => sum + (balances[s.ticker] || 0) * s.price, 0) : 0;
+  const holdings = connected ? liveStocks.filter(s => (balances[s.ticker] || 0) > 0).map(s => ({
+    asset: s.ticker, qty: (balances[s.ticker] || 0).toFixed(2),
+    value: '$' + ((balances[s.ticker] || 0) * s.price).toFixed(0),
+    pct: (s.change >= 0 ? '+' : '') + s.change + '%', up: s.change >= 0,
+  })) : [];
+  return <>
+    <div className="crumbs">
+      <div className="path">Dashboard / <b>Overview</b></div>
+      <div className="actions">
+        {wallet
+          ? <button className="btn ghost" onClick={refreshBalances}>{wallet.address.slice(0,6)}...{wallet.address.slice(-4)}</button>
+          : <button className="btn ghost" onClick={connectW} disabled={walletLoading}>{walletLoading ? 'Connecting...' : 'Connect Wallet'}</button>
+        }
+        <button className="btn" onClick={() => setView('terminal')}>Open Terminal</button>
+        <button className="btn primary" onClick={() => setView('create')}>Create Index</button>
+      </div>
+    </div>
+
+    {/* ── Stats Row ── */}
+    <div className="ov-stats">
+      <div className="ov-stat" style={{cursor:'pointer'}} onClick={() => connected ? setView('portfolio') : connectW()}>
+        <div className="ov-stat-icon">{statIcon('M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6')}</div>
+        <div className="ov-stat-val">{connected ? (portfolioValue >= 1000 ? (portfolioValue/1000).toFixed(1)+'K' : '$'+portfolioValue.toFixed(0)) : '--'}<span className="unit">{connected ? 'USD' : ''}</span></div>
+        <div className="ov-stat-lbl">Portfolio Value</div>
+        <div className="ov-stat-foot">{connected ? <span>{holdings.length} stocks held</span> : <span style={{color:'var(--blue)'}}>Connect wallet</span>}</div>
+      </div>
+      <div className="ov-stat" style={{cursor:'pointer'}} onClick={() => setView('indices')}>
+        <div className="ov-stat-icon">{statIcon('M4 6h16M4 12h16M4 18h7')}</div>
+        <div className="ov-stat-val">{DEPLOYED_INDICES.length}</div>
+        <div className="ov-stat-lbl">On-Chain Index</div>
+        <div className="ov-stat-foot">{DEPLOYED_INDICES.length > 0 ? DEPLOYED_INDICES.map(i=>i.symbol).join(', ') : 'Factory live · create the first'}</div>
+      </div>
+      <div className="ov-stat" style={{cursor:'pointer'}} onClick={() => setView('stocks')}>
+        <div className="ov-stat-icon">{statIcon('M22 12h-4l-3 9L9 3l-3 9H2')}</div>
+        <div className="ov-stat-val">{liveStocks.length}<span className="unit">live</span></div>
+        <div className="ov-stat-lbl">Stocks</div>
+        <div className="ov-stat-foot">{liveStocks.map(s=>s.ticker).join(', ')}</div>
+      </div>
+      <div className="ov-stat">
+        <div className="ov-stat-icon">{statIcon('M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8v1m0 6v1m9-4a9 9 0 11-18 0 9 9 0 0118 0z')}</div>
+        <div className="ov-stat-val">{connected ? (balances.ETH || 0).toFixed(3) : '--'}<span className="unit">ETH</span></div>
+        <div className="ov-stat-lbl">Gas Balance</div>
+        <div className="ov-stat-foot">{connected ? 'Available for transactions' : 'Connect wallet'}</div>
+      </div>
+    </div>
+
+    {/* ── Dashboard Grid: Main + Sidebar ── */}
+    <div className="ov-grid">
+      {/* Main column */}
+      <div>
+        {/* Stocks Panel */}
+        <div className="ov-panel">
+          <div className="ov-panel-head">
+            <h3>Live Stocks</h3>
+            <span className="ov-link" onClick={() => setView('stocks')}>View All &#8599;</span>
+          </div>
+          <div className="ov-panel-body">
+            {liveStocks.map(s => <div key={s.ticker} className="ov-row" style={{cursor:'pointer'}}
+              onClick={() => window.open(RH_EXPLORER + s.token, '_blank')}>
+              <span style={{fontFamily:'var(--display)', fontWeight:600, letterSpacing:'.1em', width:60, fontSize:14}}>{s.ticker}</span>
+              <span style={{fontFamily:'var(--mono)', fontSize:10, color:'var(--ink-soft)', letterSpacing:'.08em', textTransform:'uppercase', flex:1}}>{s.name}</span>
+              <span style={{fontFamily:'var(--display)', fontWeight:600, fontSize:15, fontFeatureSettings:'"tnum"', width:80, textAlign:'right'}}>${s.price.toFixed(2)}</span>
+              <span style={{fontFamily:'var(--mono)', fontSize:11, width:65, textAlign:'right', color: s.change >= 0 ? 'var(--green)' : 'var(--red)'}}>
+                {s.change >= 0 ? '\u25b2' : '\u25bc'} {s.change > 0 ? '+' : ''}{s.change}%
+              </span>
+            </div>)}
+          </div>
+        </div>
+
+        {/* Index Panel */}
+        <div className="ov-panel" style={{marginTop:18}}>
+          <div className="ov-panel-head">
+            <h3>Top Index</h3>
+            <span className="ov-link" onClick={() => setView('indices')}>View All &#8599;</span>
+          </div>
+          <div className="ov-panel-body">
+            {DEPLOYED_INDICES.length > 0
+              ? DEPLOYED_INDICES.slice(0, 3).map(idx => <div key={idx.address} className="ov-row" style={{cursor:'pointer'}} onClick={() => setView('indices')}>
+                  <span style={{fontFamily:'var(--display)', fontWeight:600, letterSpacing:'.06em', fontSize:13, width:110}}>{idx.name}</span>
+                  <span style={{fontFamily:'var(--mono)', fontSize:11, color:'var(--blue)', fontWeight:500, width:50}}>{idx.symbol}</span>
+                  <span style={{fontFamily:'var(--mono)', fontSize:10, color:'var(--ink-soft)', flex:1}}>{idx.stocks.join(' \u00b7 ')}</span>
+                  <span style={{fontFamily:'var(--display)', fontWeight:600, fontSize:13, width:65, textAlign:'right'}}>{idx.totalSupply.toFixed(1)}</span>
+                  <span style={{fontFamily:'var(--mono)', fontSize:11, width:55, textAlign:'right', color:'var(--ink-mute)'}}>{idx.feeBps/100}%</span>
+                </div>)
+              : <div className="ov-row" style={{justifyContent:'center', color:'var(--ink-mute)', fontFamily:'var(--mono)', fontSize:11, cursor:'pointer'}} onClick={() => setView('create')}>
+                  No indices yet. Create your first index fund.
+                </div>
+            }
+          </div>
+        </div>
+      </div>
+
+      {/* Sidebar */}
+      <div>
+        {/* Portfolio Panel */}
+        <div className="ov-panel">
+          <div className="ov-panel-head">
+            <h3>Holdings</h3>
+            <span className="ov-link" onClick={() => setView('portfolio')}>Open &#8599;</span>
+          </div>
+          <div className="ov-panel-body">
+            {connected && holdings.length > 0
+              ? holdings.map((h, i) => <div key={i} className="ov-row">
+                  <span style={{fontFamily:'var(--display)', fontWeight:600, letterSpacing:'.08em', width:55, fontSize:13}}>{h.asset}</span>
+                  <span style={{fontFamily:'var(--mono)', fontSize:11, color:'var(--ink-soft)', flex:1}}>{h.qty}</span>
+                  <span style={{fontFamily:'var(--display)', fontWeight:600, fontSize:13}}>{h.value}</span>
+                  <span style={{fontFamily:'var(--mono)', fontSize:11, marginLeft:10, color: h.up ? 'var(--green)' : 'var(--red)'}}>{h.pct}</span>
+                </div>)
+              : <div className="ov-row" style={{justifyContent:'center', color:'var(--ink-mute)', fontFamily:'var(--mono)', fontSize:11, cursor:'pointer'}} onClick={connectW}>
+                  {connected ? 'No holdings yet' : 'Connect wallet to view'}
+                </div>
+            }
+          </div>
+        </div>
+
+        {/* Treasury Panel */}
+        <div className="ov-panel" style={{marginTop:18}}>
+          <div className="ov-panel-head">
+            <h3>Treasury</h3>
+            <span className="ov-link" onClick={() => setView('treasury')}>Open &#8599;</span>
+          </div>
+          <div className="ov-panel-body">
+            {[
+              { k:'Index Deployed', v: String(DEPLOYED_INDICES.length) },
+              { k:'Total Supply', v: DEPLOYED_INDICES.reduce((s,i) => s + i.totalSupply, 0).toFixed(2) },
+              { k:'Stocks Live', v: String(STOCKS.filter(s=>s.live).length) },
+              { k:'Chain', v: 'RH Mainnet' },
+            ].map((r, i) => <div key={i} className="ov-row">
+              <span style={{fontFamily:'var(--mono)', fontSize:10, letterSpacing:'.14em', textTransform:'uppercase', color:'var(--ink-soft)'}}>{r.k}</span>
+              <span style={{fontFamily:'var(--display)', fontSize:14, fontWeight:600, fontFeatureSettings:'"tnum"'}}>{r.v}</span>
+            </div>)}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {/* ── My Indices (if creator) ── */}
+    {connected && (() => {
+      const myIndices = DEPLOYED_INDICES.filter(idx => idx.creator.toLowerCase() === wallet.address.toLowerCase());
+      if (myIndices.length === 0) return null;
+      const totalFeeEarned = myIndices.reduce((s, idx) => s + (balances[idx.symbol] || 0), 0);
+      return <div className="ov-panel" style={{marginTop:20}}>
+        <div className="ov-panel-head">
+          <h3>My Indices (Creator)</h3>
+          <span className="ov-link" onClick={() => setView('indices')}>Manage &#8599;</span>
+        </div>
+        <div className="ov-panel-body">
+          <div style={{display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:14, marginBottom:14}}>
+            <div style={{padding:'12px 14px', border:'1px solid var(--rule)', background:'rgba(94,121,178,.03)'}}>
+              <div style={{fontFamily:'var(--mono)', fontSize:9, letterSpacing:'.2em', textTransform:'uppercase', color:'var(--ink-mute)', marginBottom:4}}>My Indices</div>
+              <div style={{fontFamily:'var(--display)', fontSize:22, fontWeight:700}}>{myIndices.length}</div>
+            </div>
+            <div style={{padding:'12px 14px', border:'1px solid var(--rule)', background:'rgba(94,121,178,.03)'}}>
+              <div style={{fontFamily:'var(--mono)', fontSize:9, letterSpacing:'.2em', textTransform:'uppercase', color:'var(--ink-mute)', marginBottom:4}}>Total Minted</div>
+              <div style={{fontFamily:'var(--display)', fontSize:22, fontWeight:700}}>{myIndices.reduce((s,i) => s + i.totalSupply, 0).toFixed(1)}</div>
+            </div>
+            <div style={{padding:'12px 14px', border:'1px solid var(--rule)', background:'rgba(94,121,178,.03)'}}>
+              <div style={{fontFamily:'var(--mono)', fontSize:9, letterSpacing:'.2em', textTransform:'uppercase', color:'var(--ink-mute)', marginBottom:4}}>Fee Tokens Earned</div>
+              <div style={{fontFamily:'var(--display)', fontSize:22, fontWeight:700, color:'var(--green)'}}>{totalFeeEarned.toFixed(4)}</div>
+            </div>
+          </div>
+          {myIndices.map(idx => <div key={idx.address} className="ov-row" style={{cursor:'pointer', flexWrap:'wrap', gap:6}} onClick={() => setView('indices')}>
+            <span style={{fontFamily:'var(--display)', fontWeight:700, letterSpacing:'.06em', fontSize:14, width:120}}>{idx.name}</span>
+            <span style={{fontFamily:'var(--mono)', fontSize:11, color:'var(--blue)', fontWeight:500, width:60}}>{idx.symbol}</span>
+            <span style={{fontFamily:'var(--mono)', fontSize:10, color:'var(--ink-soft)', flex:1}}>{idx.stocks.join(' \u00b7 ')}</span>
+            <span style={{fontFamily:'var(--mono)', fontSize:10, width:70, textAlign:'right'}}>Supply: {idx.totalSupply.toFixed(1)}</span>
+            <span style={{fontFamily:'var(--mono)', fontSize:10, width:50, textAlign:'right', color:'var(--green)'}}>{idx.feeBps/100}% fee</span>
+          </div>)}
+          <div style={{marginTop:10, fontFamily:'var(--mono)', fontSize:9, color:'var(--ink-mute)', lineHeight:1.6}}>
+            As index creator you earn 50% of the immutable mint fee. The other 50% goes to the configured protocol treasury; no untracked LP fee promise is made.
+          </div>
+        </div>
+      </div>;
+    })()}
+
+    {/* ── Terminal + Create CTAs ── */}
+    <div className="ov-cta-grid">
+      <div className="ov-cta" onClick={() => setView('terminal')}>
+        <div style={{fontFamily:'var(--mono)', fontSize:9.5, letterSpacing:'.26em', textTransform:'uppercase', color:'var(--blue)', marginBottom:10}}>// AI Terminal</div>
+        <div style={{fontFamily:'var(--display)', fontSize:22, fontWeight:700, letterSpacing:'.04em', marginBottom:6}}>Trade with AI</div>
+        <p style={{fontFamily:'var(--sans)', fontSize:12.5, color:'var(--ink-soft)', lineHeight:1.5, margin:'0 0 14px'}}>
+          Buy index tokens, create funds, check stock prices, manage transfers. Natural language.
+        </p>
+        <span className="btn primary" style={{display:'inline-flex'}}>Open Terminal</span>
+      </div>
+      <div className="ov-cta" onClick={() => setView('create')}>
+        <div style={{fontFamily:'var(--mono)', fontSize:9.5, letterSpacing:'.26em', textTransform:'uppercase', color:'var(--blue)', marginBottom:10}}>// Create</div>
+        <div style={{fontFamily:'var(--display)', fontSize:22, fontWeight:700, letterSpacing:'.04em', marginBottom:6}}>New Index Fund</div>
+        <p style={{fontFamily:'var(--sans)', fontSize:12.5, color:'var(--ink-soft)', lineHeight:1.5, margin:'0 0 14px'}}>
+          Configure and deploy a 2-5 stock index through the live Robinhood Chain Mainnet Factory.
+        </p>
+        <span className="btn" style={{display:'inline-flex'}}>Create Index</span>
+      </div>
+      <div className="ov-cta" onClick={() => setView('liquidity')}>
+        <div style={{fontFamily:'var(--mono)', fontSize:9.5, letterSpacing:'.26em', textTransform:'uppercase', color:'var(--blue)', marginBottom:10}}>// Liquidity</div>
+        <div style={{fontFamily:'var(--display)', fontSize:22, fontWeight:700, letterSpacing:'.04em', marginBottom:6}}>Mainnet Routes Active</div>
+        <p style={{fontFamily:'var(--sans)', fontSize:12.5, color:'var(--ink-soft)', lineHeight:1.5, margin:'0 0 14px'}}>
+          Buy and sell all five canonical Stock Tokens through executable, live-validated LI.FI aggregate routes without entrusting assets to the legacy vault.
+        </p>
+        <span className="btn" style={{display:'inline-flex'}}>View Liquidity</span>
+      </div>
+    </div>
+
+    <div className="colophon">
+      <span>ATLAS Protocol &middot; Robinhood Chain &middot; MMXXVI</span>
+      <span className="ornament">&#10022; &#10022; &#10022;</span>
+      <span>Built on Arbitrum Orbit</span>
+    </div>
+  </>;
+}
+
+function IndicesView({ setView, wallet, balances, refreshBalances }) {
+  const [mintIdx, setMintIdx] = useState(null);
+  const [mintAmount, setMintAmount] = useState('1');
+  const [minting, setMinting] = useState(false);
+  const [mintResult, setMintResult] = useState(null);
+
+  const handleBuy = async (idx) => {
+    if (!wallet) { alert('Connect wallet first'); return; }
+    setMinting(true); setMintResult(null);
+    try {
+      const amount = ethers.parseEther(mintAmount);
+      const indexContract = new ethers.Contract(idx.address, INDEX_TOKEN_ABI, wallet.signer);
+      if (INDEX_ROUTER_ADDRESS) {
+        setMintResult({ ok:true, msg:'Sizing executable ETH routes for every index component...' });
+        const plan = await requestAtlasIndexQuote({ side:'buy', indexAddress:idx.address, amount:amount.toString() });
+        const totalETH = BigInt(plan.totalETH);
+        if (!window.confirm(`Spend ${ethers.formatEther(totalETH)} ETH to mint ${mintAmount} ${idx.symbol}?\nEvery component route is validated with 0.5% max slippage.`)) { setMinting(false); return; }
+        const router = new ethers.Contract(INDEX_ROUTER_ADDRESS, INDEX_ROUTER_ABI, wallet.signer);
+        const swaps = plan.swaps.map(swap => swap.call);
+        setMintResult({ ok:true, msg:'Confirm the atomic index purchase in MetaMask...' });
+        const tx = await router.mintIndexWithETH(idx.address, amount, swaps, { value:totalETH });
+        await tx.wait();
+        if (refreshBalances) await refreshBalances();
+        setMintResult({ ok:true, msg:`Bought ${mintAmount} ${idx.symbol} with ETH through atomic component swaps.` });
+      } else {
+        for (let i = 0; i < idx.stockAddresses.length; i++) {
+          const underlying = new ethers.Contract(idx.stockAddresses[i], ERC20_ABI, wallet.signer);
+          const required = await indexContract.requiredUnderlying(i, amount);
+          const allowance = await underlying.allowance(wallet.address, idx.address);
+          if (allowance < required) {
+            setMintResult({ ok: true, msg: `Approving ${idx.stocks[i]}...` });
+            await (await underlying.approve(idx.address, required)).wait();
+          }
+        }
+        setMintResult({ ok: true, msg: 'Minting a fully collateralized index...' });
+        const tx = await indexContract.mint(amount);
+        await tx.wait();
+        if (refreshBalances) await refreshBalances();
+        setMintResult({ ok: true, msg: `Minted ${mintAmount} ${idx.symbol} gross. Underlying stocks were deposited directly.` });
+      }
+    } catch (err) {
+      setMintResult({ ok: false, msg: err.reason || err.shortMessage || err.message || 'Unknown error' });
+    }
+    setMinting(false);
+  };
+
+  const handleSell = async (idx) => {
+    if (!wallet) { alert('Connect wallet first'); return; }
+    setMinting(true); setMintResult(null);
+    try {
+      const amount = ethers.parseEther(mintAmount);
+      const indexContract = new ethers.Contract(idx.address, INDEX_TOKEN_ABI, wallet.signer);
+      if (INDEX_ROUTER_ADDRESS) {
+        setMintResult({ ok:true, msg:'Quoting each redeemed Stock Token for ETH...' });
+        const plan = await requestAtlasIndexQuote({ side:'sell', indexAddress:idx.address, amount:amount.toString() });
+        const minimumETH = BigInt(plan.minimumETH);
+        if (!window.confirm(`Burn ${mintAmount} ${idx.symbol} for at least ${ethers.formatEther(minimumETH)} ETH?\nAn index approval may be required.`)) { setMinting(false); return; }
+        if (await indexContract.allowance(wallet.address, INDEX_ROUTER_ADDRESS) < amount) {
+          setMintResult({ ok:true, msg:`Approving ${idx.symbol} for the ATLAS Index Router...` });
+          await (await indexContract.approve(INDEX_ROUTER_ADDRESS, amount)).wait();
+        }
+        const router = new ethers.Contract(INDEX_ROUTER_ADDRESS, INDEX_ROUTER_ABI, wallet.signer);
+        const tx = await router.sellIndexForETH(idx.address, amount, plan.swaps.map(swap => swap.call), minimumETH);
+        await tx.wait();
+        if (refreshBalances) await refreshBalances();
+        setMintResult({ ok:true, msg:`Sold ${mintAmount} ${idx.symbol}; redeemed components were atomically converted to ETH.` });
+      } else {
+        setMintResult({ ok: true, msg: 'Burning index tokens for the deterministic underlying basket...' });
+        const tx = await indexContract.burn(amount);
+        await tx.wait();
+        if (refreshBalances) await refreshBalances();
+        setMintResult({ ok: true, msg: `Burned ${mintAmount} ${idx.symbol}; underlying stocks returned to your wallet.` });
+      }
+    } catch (err) { setMintResult({ ok: false, msg: err.reason || err.shortMessage || err.message }); }
+    setMinting(false);
+  };
+
+  return <>
+    <div className="crumbs">
+      <div className="path">Dashboard / <b>Index</b></div>
+      <div className="actions">
+        <button className="btn primary" onClick={() => setView('create')}>Create New Index</button>
+      </div>
+    </div>
+
+    {/* All indices from on-chain */}
+    <div className="sec-title" style={{marginTop:18}}>
+      <span className="kicker">On-Chain</span>
+      <h2>Deployed Indices</h2>
+      <span className="ornament">&#10022; &middot; &#10022;</span>
+    </div>
+    {DEPLOYED_INDICES.length > 0 ? <>
+      <table className="indices">
+        <thead><tr><th>#</th><th>Name</th><th>Ticker</th><th>Stocks</th><th>Supply</th><th>Fee</th><th>Your Balance</th><th>Actions</th></tr></thead>
+        <tbody>
+          {DEPLOYED_INDICES.map((idx, i) => <React.Fragment key={idx.address}>
+            <tr style={{cursor:'pointer'}} onClick={() => setMintIdx(mintIdx === idx.address ? null : idx.address)}>
+              <td className="idx-id">{i + 1}</td>
+              <td className="idx-name">{idx.name}</td>
+              <td style={{fontFamily:'var(--mono)', fontSize:12, color:'var(--blue)', fontWeight:500}}>{idx.symbol}</td>
+              <td className="idx-stocks">{idx.stocks.join(' \u00b7 ')}</td>
+              <td style={{fontFamily:'var(--mono)', fontFeatureSettings:'"tnum"'}}>{idx.totalSupply.toFixed(2)}</td>
+              <td className="idx-fee">{(idx.feeBps / 100).toFixed(1)}%</td>
+              <td style={{fontFamily:'var(--mono)', fontWeight:600}}>{(balances[idx.symbol] || 0).toFixed(4)}</td>
+              <td>
+                <button className="btn primary" style={{fontSize:10, padding:'4px 12px'}}>
+                  {mintIdx === idx.address ? 'Close' : 'Trade'}
+                </button>
+              </td>
+            </tr>
+            {mintIdx === idx.address && <tr><td colSpan="8" style={{padding:0, border:'none'}}>
+              <div style={{border:'1px solid var(--ink)', padding:16, background:'rgba(94,121,178,.05)'}}>
+                <div style={{fontFamily:'var(--display)', fontWeight:600, fontSize:14, marginBottom:4}}>{idx.name} ({idx.symbol})</div>
+                <div style={{fontFamily:'var(--mono)', fontSize:10, color:'var(--ink-soft)', marginBottom:4}}>Creator: {idx.creator.slice(0,6)}...{idx.creator.slice(-4)}</div>
+                <div style={{fontFamily:'var(--mono)', fontSize:10, color:'var(--ink-soft)', marginBottom:12, wordBreak:'break-all'}}>Contract: {idx.address}</div>
+                <div style={{display:'flex', gap:8, alignItems:'center', marginBottom:8}}>
+                  <label style={{fontFamily:'var(--mono)', fontSize:11}}>Amount:</label>
+                  <input value={mintAmount} onChange={e => setMintAmount(e.target.value)} placeholder="1.0" style={{width:100, padding:'6px 10px', border:'1px solid var(--ink)', fontFamily:'var(--mono)', fontSize:13, background:'var(--paper)'}} />
+                  <button className="btn primary" style={{fontSize:11, padding:'6px 16px'}} onClick={(e) => { e.stopPropagation(); handleBuy(idx); }} disabled={minting}>{minting ? 'Processing...' : 'Buy'}</button>
+                  <button className="btn" style={{fontSize:11, padding:'6px 16px'}} onClick={(e) => { e.stopPropagation(); handleSell(idx); }} disabled={minting}>{minting ? 'Processing...' : 'Sell'}</button>
+                </div>
+                <div style={{fontFamily:'var(--mono)', fontSize:9, color:'var(--ink-mute)'}}>{INDEX_ROUTER_ADDRESS ? 'Buy: atomically swap ETH into every component and mint. Sell: burn and atomically convert redeemed components to ETH.' : 'Index Router deployment pending. Until configured, mint deposits canonical Stock Tokens directly and burn returns the deterministic basket.'}</div>
+                {mintResult && <div style={{fontFamily:'var(--mono)', fontSize:11, marginTop:8, padding:'6px 10px', background: mintResult.ok ? 'rgba(0,180,0,.08)' : 'rgba(180,0,0,.08)', color: mintResult.ok ? 'var(--green)' : 'var(--red)'}}>{mintResult.msg}</div>}
+              </div>
+            </td></tr>}
+          </React.Fragment>)}
+        </tbody>
+      </table>
+    </> : <div style={{padding:'32px 0', textAlign:'center', color:'var(--dim)', fontSize:14}}>No indices deployed yet. Create your first index above!</div>}
+  </>;
+}
+
+function StocksView({ wallet, balances, refreshBalances, connectW, walletLoading }) {
+  const [tradeInputs, setTradeInputs] = useState(() => Object.fromEntries(STOCKS.map(stock => [stock.ticker, { buy: '0.01', sell: '1' }])));
+  const [busyTrade, setBusyTrade] = useState('');
+  const [tradeStatus, setTradeStatus] = useState({});
+
+  const setTradeInput = (ticker, side, value) => {
+    if (!/^\d*\.?\d*$/.test(value)) return;
+    setTradeInputs(prev => ({ ...prev, [ticker]: { ...prev[ticker], [side]: value } }));
+  };
+
+  const tradeStock = async (stock, side) => {
+    if (!wallet) {
+      setTradeStatus(prev => ({ ...prev, [stock.ticker]: { ok:false, text:'Connect your wallet, then retry the trade.' } }));
+      await connectW?.();
+      return;
+    }
+    const input = tradeInputs[stock.ticker]?.[side];
+    if (!input || Number(input) <= 0) {
+      setTradeStatus(prev => ({ ...prev, [stock.ticker]: { ok:false, text:'Enter a positive amount.' } }));
+      return;
+    }
+    const key = `${stock.ticker}:${side}`;
+    setBusyTrade(key);
+    setTradeStatus(prev => ({ ...prev, [stock.ticker]: { ok:true, text:'Requesting executable mainnet quote...' } }));
+    try {
+      const underlying = new ethers.Contract(stock.token, ERC20_ABI, wallet.signer);
+      const [decimals, multiplier] = await Promise.all([underlying.decimals(), underlying.uiMultiplier()]);
+      const uiAmount = side === 'buy' ? null : ethers.parseUnits(input, Number(decimals));
+      const rawAmount = side === 'buy' ? ethers.parseEther(input) : StockTokenUnits.uiToRawUnits(uiAmount, multiplier);
+      const quote = await requestAtlasSwapQuote({ side, ticker: stock.ticker, amount: rawAmount.toString(), wallet: wallet.address });
+      const minimumOutput = side === 'buy'
+        ? `${Number(ethers.formatUnits(StockTokenUnits.rawToUiUnits(BigInt(quote.toAmountMin), multiplier), Number(decimals))).toFixed(6)} ${stock.ticker}`
+        : `${Number(ethers.formatEther(quote.toAmountMin)).toFixed(6)} ETH`;
+      const prompt = side === 'buy'
+        ? `Spend ${input} ETH for at least ${minimumOutput}?\nRoute: ${quote.tool} via LI.FI · max slippage 0.5%`
+        : `Sell ${input} ${stock.ticker} for at least ${minimumOutput}?\nAn ERC-20 approval may be required · max slippage 0.5%`;
+      if (!window.confirm(prompt)) {
+        setTradeStatus(prev => ({ ...prev, [stock.ticker]: { ok:false, text:'Trade cancelled before wallet submission.' } }));
+        return;
+      }
+      if (side === 'sell') {
+        const allowance = await underlying.allowance(wallet.address, quote.approvalAddress);
+        if (allowance < rawAmount) {
+          setTradeStatus(prev => ({ ...prev, [stock.ticker]: { ok:true, text:`Approving ${stock.ticker} for the validated LI.FI Diamond...` } }));
+          await (await underlying.approve(quote.approvalAddress, rawAmount)).wait();
+        }
+      }
+      setTradeStatus(prev => ({ ...prev, [stock.ticker]: { ok:true, text:'Confirm the quoted swap in MetaMask...' } }));
+      const tx = await wallet.signer.sendTransaction(quote.transaction);
+      setTradeStatus(prev => ({ ...prev, [stock.ticker]: { ok:true, text:`Submitted ${tx.hash.slice(0,14)}... Waiting for confirmation.` } }));
+      await tx.wait();
+      await refreshBalances?.();
+      setTradeStatus(prev => ({ ...prev, [stock.ticker]: { ok:true, text:`${side === 'buy' ? 'Purchase' : 'Sale'} confirmed on Robinhood Chain.` } }));
+    } catch (error) {
+      setTradeStatus(prev => ({ ...prev, [stock.ticker]: { ok:false, text:error.shortMessage || error.reason || error.message || 'Trade failed.' } }));
+    } finally {
+      setBusyTrade('');
+    }
+  };
+
+  return <>
+    <div className="crumbs">
+      <div className="path">Dashboard / <b>Stocks</b></div>
+      <div className="actions">
+        {wallet
+          ? <button className="btn ghost" onClick={refreshBalances}>ETH: {(balances.ETH || 0).toFixed(5)}</button>
+          : <button className="btn ghost" onClick={connectW} disabled={walletLoading}>{walletLoading ? 'Connecting...' : 'Connect Wallet'}</button>
+        }
+      </div>
+    </div>
+    <div className="sec-title" style={{marginTop:18}}>
+      <h2>Canonical Stock Tokens</h2>
+      <span className="ornament">&#10022; &#10022; &#10022;</span>
+      <span className="right">Robinhood Chain Mainnet · ERC-20</span>
+    </div>
+    <div style={{fontFamily:'var(--mono)', fontSize:10, color:'var(--ink-soft)', border:'1px solid var(--rule)', padding:'10px 12px', marginBottom:16, lineHeight:1.6}}>
+      Buy and sell canonical Stock Tokens with native ETH through a live LI.FI quote routed to Robinhood Chain liquidity. ATLAS validates chain, assets, recipient and the LI.FI Diamond before MetaMask receives a transaction. Quotes use 0.5% maximum slippage and may expire.
+    </div>
+    <div className="stocks-grid">
+      {STOCKS.map(stock => <div key={stock.ticker} className="stock-card">
+        <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+          <div className="sc-ticker">{stock.ticker}</div>
+          <span style={{fontFamily:'var(--mono)', fontSize:'8px', letterSpacing:'.18em', textTransform:'uppercase', color:'var(--green)', border:'1px solid var(--green)', padding:'2px 6px'}}>Canonical</span>
+        </div>
+        <div className="sc-name">{stock.name}</div>
+        <div className="sc-price">${stock.price.toFixed(2)}</div>
+        <div className={`sc-change ${stock.change >= 0 ? 'up' : 'dn'}`}>{stock.change >= 0 ? '\u25b2' : '\u25bc'} {stock.change > 0 ? '+' : ''}{stock.change}%</div>
+        <div style={{fontFamily:'var(--mono)', fontSize:10, marginTop:8, color:'var(--ink-soft)'}}>UI-adjusted balance: <b>{(balances[stock.ticker] || 0).toFixed(4)}</b> {stock.ticker}</div>
+        {STOCK_UI_MULTIPLIERS[stock.ticker] && <div style={{fontFamily:'var(--mono)', fontSize:8.5, marginTop:4, color:'var(--ink-mute)'}}>ERC-8056 multiplier: {Number(ethers.formatUnits(STOCK_UI_MULTIPLIERS[stock.ticker], 18)).toFixed(6)}×</div>}
+        <div style={{display:'grid', gridTemplateColumns:'1fr auto', gap:6, marginTop:12}}>
+          <input value={tradeInputs[stock.ticker]?.buy || ''} onChange={event => setTradeInput(stock.ticker, 'buy', event.target.value)} aria-label={`${stock.ticker} ETH buy amount`} style={{minWidth:0, padding:'6px 8px', border:'1px solid var(--rule)', background:'var(--paper)', fontFamily:'var(--mono)', fontSize:10}} />
+          <button className="btn primary" onClick={() => tradeStock(stock, 'buy')} disabled={!!busyTrade}>{busyTrade === `${stock.ticker}:buy` ? 'Quoting...' : 'Buy with ETH'}</button>
+          <input value={tradeInputs[stock.ticker]?.sell || ''} onChange={event => setTradeInput(stock.ticker, 'sell', event.target.value)} aria-label={`${stock.ticker} sell amount`} style={{minWidth:0, padding:'6px 8px', border:'1px solid var(--rule)', background:'var(--paper)', fontFamily:'var(--mono)', fontSize:10}} />
+          <button className="btn" onClick={() => tradeStock(stock, 'sell')} disabled={!!busyTrade || !(balances[stock.ticker] > 0)}>{busyTrade === `${stock.ticker}:sell` ? 'Quoting...' : 'Sell for ETH'}</button>
+        </div>
+        <div style={{fontFamily:'var(--mono)', fontSize:8.5, color:'var(--ink-mute)', marginTop:5}}>Buy input: ETH · Sell input: UI-adjusted {stock.ticker}</div>
+        {tradeStatus[stock.ticker] && <div style={{fontFamily:'var(--mono)', fontSize:9, lineHeight:1.4, marginTop:8, color:tradeStatus[stock.ticker].ok ? 'var(--green)' : 'var(--red)'}}>{tradeStatus[stock.ticker].text}</div>}
+        <a className="btn" href={RH_EXPLORER + stock.token} target="_blank" rel="noopener noreferrer" style={{marginTop:10, fontSize:9, textDecoration:'none'}}>View Contract</a>
+      </div>)}
+    </div>
+    <div style={{marginTop:18, display:'flex', gap:10, flexWrap:'wrap'}}>
+      <a className="btn primary" href="https://docs.robinhood.com/chain/contracts" target="_blank" rel="noopener noreferrer" style={{textDecoration:'none'}}>Official Token Contracts</a>
+      <a className="btn" href="https://docs.robinhood.com/chain/building-with-stock-tokens" target="_blank" rel="noopener noreferrer" style={{textDecoration:'none'}}>Liquidity Documentation</a>
+    </div>
+  </>;
+}
+
+function TerminalView({ wallet, balances, refreshBalances, connectW, walletLoading }) {
+  const walletStatus = wallet ? `Wallet: ${wallet.address.slice(0,6)}...${wallet.address.slice(-4)}` : 'Wallet: not connected (connect via sidebar)';
+  const [messages, setMessages] = useState([
+    { type:'system', text:'Atlas Terminal \u00b7 v0.1.0 \u00b7 Robinhood Chain Mainnet' },
+    { type:'system', text: walletStatus },
+    { type:'spacer' },
+    { type:'agent', text:'Welcome to Atlas. I can help you buy/sell index tokens, check tokenized stock prices, create custom index funds, manage transfers, or answer questions. What would you like to do?' },
+  ]);
+  const [input, setInput] = useState('');
+  const [isThinking, setIsThinking] = useState(false);
+  const [chatHistory, setChatHistory] = useState([]);
+  const [pendingConfirm, setPendingConfirm] = useState(null);
+  const messagesEnd = useRef(null);
+  const messagesArea = useRef(null);
+  const wrapRef = useRef(null);
+  const inputRef = useRef(null);
+
+  useEffect(() => { messagesEnd.current?.scrollIntoView({ behavior:'smooth' }); }, [messages]);
+  useEffect(() => { inputRef.current?.focus(); }, []);
+
+  // sync notebook lines with scroll
+  useEffect(() => {
+    const el = messagesArea.current;
+    if (!el) return;
+    const sync = () => {
+      if (wrapRef.current) {
+        const offset = -(el.scrollTop % 28) + 20;
+        wrapRef.current.style.setProperty('--term-offset', offset + 'px');
+      }
+    };
+    el.addEventListener('scroll', sync);
+    sync();
+    return () => el.removeEventListener('scroll', sync);
+  }, []);
+
+  const handleSend = async () => {
+    if (!input.trim() || isThinking) return;
+    const userInput = input.trim();
+    setInput('');
+    setMessages(prev => [...prev, { type:'user', text: userInput }]);
+    setIsThinking(true);
+
+    // Add to chat history
+    const newHistory = [...chatHistory, { role: 'user', content: userInput }];
+    setChatHistory(newHistory);
+
+    // Show thinking
+    setMessages(prev => [...prev, { type:'thinking', text:'Consulting the oracle...' }]);
+
+    try {
+      const parsed = await callAtlasAI(newHistory, balances);
+      const confirm = buildConfirmation(parsed);
+
+      // Add assistant reply to chat history
+      setChatHistory(prev => [...prev, { role: 'assistant', content: parsed.reply || '' }]);
+
+      if (confirm) {
+        // Show preview + confirm buttons
+        setPendingConfirm(confirm);
+        setMessages(prev => {
+          const without = prev.filter(m => m.type !== 'thinking');
+          return [...without, ...confirm.preview, { type:'confirm' }];
+        });
+      } else {
+        // No confirmation needed, show directly
+        const resultMsgs = executeAction(parsed, balances);
+        setMessages(prev => {
+          const without = prev.filter(m => m.type !== 'thinking');
+          return [...without, ...resultMsgs, { type:'spacer' }];
+        });
+      }
+    } catch (err) {
+      console.error('AI error:', err);
+      setMessages(prev => {
+        const without = prev.filter(m => m.type !== 'thinking');
+        return [...without, { type:'error', text: `AI unavailable: ${err.message || 'Please try again.'}` }, { type:'spacer' }];
+      });
+    }
+    setIsThinking(false);
+  };
+
+  const handleConfirm = async () => {
+    if (!pendingConfirm) return;
+    const { action: act, data: d } = pendingConfirm;
+
+    // Check wallet connection for any on-chain action
+    if (!wallet && (act === 'buy_index' || act === 'sell_index' || act === 'buy_stock' || act === 'sell_stock' || act === 'send' || act === 'create_index')) {
+      setMessages(prev => {
+        const without = prev.filter(m => m.type !== 'confirm');
+        return [...without, { type:'system', text: 'Connecting wallet...' }];
+      });
+      if (connectW) await connectW();
+      // After connecting, show message to retry
+      setMessages(prev => [...prev, { type:'agent', text: 'Wallet connected! Please try your command again.' }, { type:'spacer' }]);
+      setPendingConfirm(null);
+      return;
+    }
+
+    // Mainnet Stock Token buy/sell through a validated LI.FI aggregate quote.
+    if ((act === 'buy_stock' || act === 'sell_stock') && wallet && d?.stock) {
+      const side = act === 'buy_stock' ? 'buy' : 'sell';
+      setPendingConfirm(null);
+      setMessages(prev => prev.filter(m => m.type !== 'confirm').concat({ type:'system', text: `Requesting ${side === 'buy' ? `ETH→${d.stock.ticker}` : `${d.stock.ticker}→ETH`} mainnet liquidity quote...` }));
+      try {
+        const underlying = new ethers.Contract(d.stock.token, ERC20_ABI, wallet.signer);
+        const [decimals, multiplier] = await Promise.all([underlying.decimals(), underlying.uiMultiplier()]);
+        const rawAmount = side === 'buy'
+          ? ethers.parseEther(String(d.ethAmount))
+          : StockTokenUnits.uiToRawUnits(ethers.parseUnits(String(d.qty), Number(decimals)), multiplier);
+        const quote = await requestAtlasSwapQuote({ side, ticker: d.stock.ticker, amount: rawAmount.toString(), wallet: wallet.address });
+        const minimumOutput = side === 'buy'
+          ? `${Number(ethers.formatUnits(StockTokenUnits.rawToUiUnits(BigInt(quote.toAmountMin), multiplier), Number(decimals))).toFixed(6)} ${d.stock.ticker}`
+          : `${Number(ethers.formatEther(quote.toAmountMin)).toFixed(6)} ETH`;
+        setMessages(prev => [...prev, { type:'system', text: `Validated route: ${quote.tool} via LI.FI · minimum output ${minimumOutput}.` }]);
+        if (side === 'sell' && await underlying.allowance(wallet.address, quote.approvalAddress) < rawAmount) {
+          setMessages(prev => [...prev, { type:'system', text: `Approving ${d.stock.ticker} for the validated LI.FI Diamond...` }]);
+          await (await underlying.approve(quote.approvalAddress, rawAmount)).wait();
+        }
+        const tx = await wallet.signer.sendTransaction(quote.transaction);
+        setMessages(prev => [...prev, { type:'system', text: `Swap submitted: ${tx.hash.slice(0,14)}...` }]);
+        await tx.wait();
+        if (refreshBalances) await refreshBalances();
+        const text = `\u2713 ${side === 'buy' ? 'Purchase' : 'Sale'} confirmed on Robinhood Chain. Minimum quoted output: ${minimumOutput}.`;
+        setChatHistory(prev => [...prev, { role:'user', content:'Confirmed.' }, { role:'assistant', content:text }]);
+        setMessages(prev => [...prev, { type:'success', text }, { type:'spacer' }]);
+      } catch (err) {
+        setMessages(prev => [...prev, { type:'error', text:`Stock ${side} failed: ${err.shortMessage || err.reason || err.message}` }, { type:'spacer' }]);
+      }
+      return;
+    }
+
+    // Mainnet direct mint: approve each canonical underlying, then mint.
+    if (act === 'buy_index' && wallet && d?.index) {
+      setPendingConfirm(null);
+      setMessages(prev => prev.filter(m => m.type !== 'confirm').concat({ type:'system', text: `Preparing collateral for ${d.qty} ${d.index.symbol}...` }));
+      try {
+        const amount = ethers.parseEther(String(d.qty));
+        const indexContract = new ethers.Contract(d.index.address, INDEX_TOKEN_ABI, wallet.signer);
+        let tx;
+        let successText;
+        if (INDEX_ROUTER_ADDRESS) {
+          const plan = await requestAtlasIndexQuote({ side:'buy', indexAddress:d.index.address, amount:amount.toString() });
+          const totalETH = BigInt(plan.totalETH);
+          setMessages(prev => [...prev, { type:'system', text:`Atomic component routes ready. Spending ${ethers.formatEther(totalETH)} ETH.` }]);
+          const router = new ethers.Contract(INDEX_ROUTER_ADDRESS, INDEX_ROUTER_ABI, wallet.signer);
+          tx = await router.mintIndexWithETH(d.index.address, amount, plan.swaps.map(swap => swap.call), { value:totalETH });
+          successText = `\u2713 Bought ${d.qty} ${d.index.symbol} with ETH through atomic component swaps.`;
+        } else {
+          for (let i = 0; i < d.index.stockAddresses.length; i++) {
+            const underlying = new ethers.Contract(d.index.stockAddresses[i], ERC20_ABI, wallet.signer);
+            const required = await indexContract.requiredUnderlying(i, amount);
+            if (await underlying.allowance(wallet.address, d.index.address) < required) {
+              setMessages(prev => [...prev, { type:'system', text: `Approving ${d.index.stocks[i]}...` }]);
+              await (await underlying.approve(d.index.address, required)).wait();
+            }
+          }
+          tx = await indexContract.mint(amount);
+          successText = `\u2713 Minted ${d.qty} ${d.index.symbol} gross with direct RWA collateral.`;
+        }
+        setMessages(prev => [...prev, { type:'system', text: `Tx submitted: ${tx.hash.slice(0,14)}...` }]);
+        await tx.wait();
+        if (refreshBalances) await refreshBalances();
+        const msgs = [{ type:'success', text: `${successText} Tx: ${tx.hash.slice(0,14)}...` }];
+        setChatHistory(prev => [...prev, { role:'user', content:'Confirmed.' }, { role:'assistant', content: msgs[0].text }]);
+        setMessages(prev => [...prev, ...msgs, { type:'spacer' }]);
+      } catch (err) {
+        const msgs = [{ type:'error', text: `Mint failed: ${err.reason || err.shortMessage || err.message}` }];
+        setMessages(prev => [...prev, ...msgs, { type:'spacer' }]);
+      }
+      return;
+    }
+
+    // Mainnet direct redemption: burn index tokens and receive underlying assets.
+    if (act === 'sell_index' && wallet && d?.index) {
+      setPendingConfirm(null);
+      setMessages(prev => prev.filter(m => m.type !== 'confirm').concat({ type:'system', text: `Redeeming ${d.qty} ${d.index.symbol}...` }));
+      try {
+        const amount = ethers.parseEther(String(d.qty));
+        const indexContract = new ethers.Contract(d.index.address, INDEX_TOKEN_ABI, wallet.signer);
+        let tx;
+        let successText;
+        if (INDEX_ROUTER_ADDRESS) {
+          const plan = await requestAtlasIndexQuote({ side:'sell', indexAddress:d.index.address, amount:amount.toString() });
+          if (await indexContract.allowance(wallet.address, INDEX_ROUTER_ADDRESS) < amount) {
+            setMessages(prev => [...prev, { type:'system', text:`Approving ${d.index.symbol} for the ATLAS Index Router...` }]);
+            await (await indexContract.approve(INDEX_ROUTER_ADDRESS, amount)).wait();
+          }
+          const router = new ethers.Contract(INDEX_ROUTER_ADDRESS, INDEX_ROUTER_ABI, wallet.signer);
+          tx = await router.sellIndexForETH(d.index.address, amount, plan.swaps.map(swap => swap.call), BigInt(plan.minimumETH));
+          successText = `\u2713 Sold ${d.qty} ${d.index.symbol}; redeemed components were atomically converted to ETH.`;
+        } else {
+          tx = await indexContract.burn(amount);
+          successText = `\u2713 Redeemed ${d.qty} ${d.index.symbol}; deterministic basket returned to your wallet.`;
+        }
+        setMessages(prev => [...prev, { type:'system', text: `Tx submitted: ${tx.hash.slice(0,14)}...` }]);
+        await tx.wait();
+        if (refreshBalances) await refreshBalances();
+        const msgs = [{ type:'success', text: `${successText} Tx: ${tx.hash.slice(0,14)}...` }];
+        setChatHistory(prev => [...prev, { role:'user', content:'Confirmed.' }, { role:'assistant', content: msgs[0].text }]);
+        setMessages(prev => [...prev, ...msgs, { type:'spacer' }]);
+      } catch (err) {
+        setMessages(prev => [...prev, { type:'error', text: `Redemption failed: ${err.reason || err.shortMessage || err.message}` }, { type:'spacer' }]);
+      }
+      return;
+    }
+
+    // Real on-chain send
+    if (act === 'send' && wallet && d?.toAddress && d?.sendAmount && d?.sendToken) {
+      const stock = STOCKS.find(s => s.ticker === d.sendToken.toUpperCase());
+      if (stock && stock.token) {
+        setPendingConfirm(null);
+        setMessages(prev => {
+          const without = prev.filter(m => m.type !== 'confirm');
+          return [...without, { type:'system', text: 'Sending transaction to Robinhood Chain...' }];
+        });
+        try {
+          const contract = new ethers.Contract(stock.token, ERC20_ABI, wallet.signer);
+          const [decimals, multiplier] = await Promise.all([contract.decimals(), contract.uiMultiplier()]);
+          const uiAmount = ethers.parseUnits(String(d.sendAmount), Number(decimals));
+          const amount = StockTokenUnits.uiToRawUnits(uiAmount, multiplier);
+          const tx = await contract.transfer(d.toAddress, amount);
+          setMessages(prev => [...prev, { type:'system', text: `Tx submitted: ${tx.hash.slice(0,14)}...` }]);
+          await tx.wait();
+          if (refreshBalances) refreshBalances();
+          const msgs = [{ type:'success', text: `\u2713 Transfer confirmed on-chain! Tx: ${tx.hash.slice(0,14)}...` }];
+          setChatHistory(prev => [...prev, { role:'user', content:'Confirmed.' }, { role:'assistant', content: msgs.map(m=>m.text).join(' ') }]);
+          setMessages(prev => [...prev, ...msgs, { type:'spacer' }]);
+          return;
+        } catch (err) {
+          const msgs = [{ type:'error', text: `Transaction failed: ${err.reason || err.message || 'Unknown error'}` }];
+          setChatHistory(prev => [...prev, { role:'user', content:'Confirmed.' }, { role:'assistant', content: msgs.map(m=>m.text).join(' ') }]);
+          setMessages(prev => [...prev, ...msgs, { type:'spacer' }]);
+          return;
+        }
+      }
+    }
+
+    // Real on-chain create index
+    if (act === 'create_index' && wallet && d?.indexStocks?.length >= 2) {
+      setPendingConfirm(null);
+      setMessages(prev => {
+        const without = prev.filter(m => m.type !== 'confirm');
+        return [...without, { type:'system', text: 'Deploying index token on Robinhood Chain...' }];
+      });
+      try {
+        const stockAddrs = d.indexStocks.map(t => {
+          const s = STOCKS.find(st => st.ticker === t.toUpperCase());
+          return s?.token;
+        }).filter(Boolean);
+        if (stockAddrs.length < 2) throw new Error('Need at least 2 valid stock tickers');
+        const equalW = Math.floor(10000 / stockAddrs.length);
+        const weights = stockAddrs.map((_, i) => i === 0 ? 10000 - equalW * (stockAddrs.length - 1) : equalW);
+        const factory = new ethers.Contract(FACTORY_ADDRESS, FACTORY_ABI, wallet.signer);
+        const tx = await factory.createIndex(d.indexName, d.symbol || 'IDX', stockAddrs, weights, 30);
+        setMessages(prev => [...prev, { type:'system', text: `Tx submitted: ${tx.hash.slice(0,14)}...` }]);
+        const receipt = await tx.wait();
+        const event = receipt.logs.find(l => { try { return factory.interface.parseLog(l)?.name === 'IndexCreated'; } catch { return false; } });
+        const indexAddr = event ? factory.interface.parseLog(event).args[0] : '';
+        await loadDeployedIndices(wallet.provider);
+        if (refreshBalances) refreshBalances();
+        const msgs = [
+          { type:'success', text: `\u2713 Index "$${d.symbol}" deployed on Robinhood Chain!` },
+          { type:'agent', text: `Contract: ${indexAddr}` },
+        ];
+        setChatHistory(prev => [...prev, { role:'user', content:'Confirmed.' }, { role:'assistant', content: msgs.map(m=>m.text).join(' ') }]);
+        setMessages(prev => [...prev, ...msgs, { type:'spacer' }]);
+        return;
+      } catch (err) {
+        const msgs = [{ type:'error', text: `Deploy failed: ${err.reason || err.message}` }];
+        setChatHistory(prev => [...prev, { role:'user', content:'Confirmed.' }, { role:'assistant', content: msgs.map(m=>m.text).join(' ') }]);
+        setMessages(prev => [...prev, ...msgs, { type:'spacer' }]);
+        return;
+      }
+    }
+
+    
+    const msgs = pendingConfirm.onConfirm;
+    setPendingConfirm(null);
+    setChatHistory(prev => [...prev, { role: 'user', content: 'Confirmed.' }, { role: 'assistant', content: msgs.map(m => m.text).join(' ') }]);
+    setMessages(prev => {
+      const without = prev.filter(m => m.type !== 'confirm');
+      return [...without, ...msgs, { type:'spacer' }];
+    });
+  };
+
+  const handleCancel = () => {
+    if (!pendingConfirm) return;
+    const msgs = pendingConfirm.onCancel;
+    setPendingConfirm(null);
+    setChatHistory(prev => [...prev, { role: 'user', content: 'Cancelled.' }, { role: 'assistant', content: msgs.map(m => m.text).join(' ') }]);
+    setMessages(prev => {
+      const without = prev.filter(m => m.type !== 'confirm');
+      return [...without, ...msgs, { type:'spacer' }];
+    });
+  };
+
+  const handleKey = (e) => { if (e.key === 'Enter') handleSend(); };
+
+  const clearChat = () => {
+    setChatHistory([]);
+    setPendingConfirm(null);
+    setMessages([
+      { type:'system', text:'Atlas Terminal \u00b7 v0.1.0 \u00b7 Robinhood Chain Mainnet' },
+      { type:'agent', text:'Terminal cleared. How can I help you?' },
+    ]);
+  };
+
+  return <>
+    <div className="crumbs">
+      <div className="path">Dashboard / <b>Terminal</b></div>
+      <div className="actions">
+        <button className="btn ghost" onClick={clearChat}>Clear</button>
+      </div>
+    </div>
+    <div className="terminal-full" ref={wrapRef}>
+      <div className="terminal-header">
+        <div className="title"><span className="dot"/> Atlas Terminal &middot; AI Agent</div>
+        <div className="info">Robinhood Chain &middot; Mainnet &middot; AI Terminal &middot; &#10022;</div>
+      </div>
+      <div className="terminal-messages" ref={messagesArea}>
+        {messages.map((m, i) => {
+          if (m.type === 'spacer') return <div key={i} className="msg-spacer"/>;
+          if (m.type === 'system') return <div key={i} className="system-msg">{m.text}</div>;
+          if (m.type === 'user') return <div key={i} className="user-msg"><span className="prompt">&#10095; </span>{m.text}</div>;
+          if (m.type === 'thinking') return <div key={i} className="thinking">{m.text}</div>;
+          if (m.type === 'success') return <div key={i} className="success-msg">{m.text}</div>;
+          if (m.type === 'error') return <div key={i} className="error-msg">{m.text}</div>;
+          if (m.type === 'confirm') return <div key={i} className="confirm-wrap">
+            <span className="confirm-label">Confirm transaction?</span>
+            <button className="confirm-btn yes" onClick={handleConfirm}>Confirm</button>
+            <button className="confirm-btn no" onClick={handleCancel}>Cancel</button>
+          </div>;
+          return <div key={i} className="agent-msg">{m.text}</div>;
+        })}
+        <div ref={messagesEnd}/>
+      </div>
+      {!wallet && <div style={{padding:'8px 16px', background:'rgba(94,121,178,.1)', borderTop:'1px solid var(--rule)', display:'flex', alignItems:'center', justifyContent:'space-between'}}>
+        <span style={{fontFamily:'var(--mono)', fontSize:11, color:'var(--ink-soft)'}}>Connect your wallet to trade on-chain</span>
+        <button className="btn primary" style={{fontSize:10, padding:'5px 14px'}} onClick={connectW} disabled={walletLoading}>{walletLoading ? 'Connecting...' : 'Connect Wallet'}</button>
+      </div>}
+      <div className="terminal-input-wrap">
+        <span className="prompt-char">&#10095;</span>
+        <input ref={inputRef} className="terminal-input" value={input} onChange={e => setInput(e.target.value)} onKeyDown={handleKey} placeholder={pendingConfirm ? 'Confirm or cancel the transaction above' : 'Ask me anything... "buy TSLA", "create an index", "what is ATLAS?"'} disabled={isThinking || !!pendingConfirm} />
+        <button className="terminal-send" onClick={handleSend} disabled={isThinking || !!pendingConfirm}>{isThinking ? '...' : 'Send'}</button>
+      </div>
+    </div>
+  </>;
+}
+
+function PortfolioView({ wallet, balances, connectW, walletLoading }) {
+  const connected = !!wallet;
+  const liveStocks = STOCKS.filter(s => s.live);
+  const stockHoldings = connected ? liveStocks.filter(s => (balances[s.ticker] || 0) > 0).map(s => ({
+    asset: s.ticker, type: 'Stock', qty: (balances[s.ticker] || 0).toFixed(4),
+    value: ((balances[s.ticker] || 0) * s.price).toFixed(2),
+    change: s.change, up: s.change >= 0,
+  })) : [];
+  const indexHoldings = connected ? DEPLOYED_INDICES.filter(idx => (balances[idx.symbol] || 0) > 0).map(idx => ({
+    asset: idx.symbol, type: 'Index', qty: (balances[idx.symbol] || 0).toFixed(4),
+    value: '0.00', change: 0, up: true,
+  })) : [];
+  const holdings = [...stockHoldings, ...indexHoldings];
+  const totalValue = holdings.reduce((s, h) => s + parseFloat(h.value), 0);
+  return <>
+    <div className="crumbs"><div className="path">Dashboard / <b>Portfolio</b></div></div>
+    <div className="sec-title" style={{marginTop:18}}>
+      <h2>Your Portfolio</h2>
+      <span className="ornament">&#10022; &#10022; &#10022;</span>
+    </div>
+    {!connected ? <div style={{textAlign:'center', padding:'60px 20px'}}>
+      <div style={{fontFamily:'var(--display)', fontSize:28, fontWeight:600, marginBottom:16}}>Connect Your Wallet</div>
+      <p style={{fontFamily:'var(--sans)', color:'var(--ink-soft)', marginBottom:24}}>Connect MetaMask to view your real holdings on Robinhood Chain Mainnet</p>
+      <button className="btn primary" onClick={connectW} disabled={walletLoading}>{walletLoading ? 'Connecting...' : 'Connect Wallet'}</button>
+    </div> : <>
+      <div className="portfolio-header">
+        <div className="port-card">
+          <div className="label">Total Value</div>
+          <div className="big">${totalValue >= 1000 ? (totalValue/1000).toFixed(1)+'K' : totalValue.toFixed(2)}<span className="unit">USD</span></div>
+          <div className="delta" style={{color:'var(--green)'}}>{holdings.length} positions</div>
+        </div>
+        <div className="port-card">
+          <div className="label">Wallet</div>
+          <div className="big" style={{fontSize:18}}>{wallet.address.slice(0,10)}...{wallet.address.slice(-8)}</div>
+          <div className="delta" style={{color:'var(--ink-soft)'}}>{(balances.ETH || 0).toFixed(4)} ETH (gas)</div>
+        </div>
+      </div>
+      <div className="sec-title" style={{marginTop:36}}>
+        <span className="kicker">Holdings</span>
+        <h2>Positions</h2>
+      </div>
+      <table className="holdings-table">
+        <thead><tr><th>Asset</th><th>Type</th><th>Qty</th><th>Value</th><th>24h</th></tr></thead>
+        <tbody>
+          {holdings.length > 0 ? holdings.map((h, i) => <tr key={i}>
+            <td style={{fontFamily:'var(--display)', fontWeight:600, letterSpacing:'.08em'}}>{h.asset}</td>
+            <td><span className="pill live">{h.type}</span></td>
+            <td style={{fontFamily:'var(--mono)', fontFeatureSettings:'"tnum"'}}>{h.qty}</td>
+            <td style={{fontFamily:'var(--display)', fontWeight:600}}>${h.value}</td>
+            <td style={{fontFamily:'var(--mono)', color: h.up ? 'var(--green)' : 'var(--red)'}}>{h.up ? '+' : ''}{h.change}%</td>
+          </tr>) : <tr><td colSpan="5" style={{textAlign:'center', color:'var(--ink-mute)', padding:30}}>No holdings found. Acquire canonical Stock Tokens through an official or audited venue, or use the terminal to inspect prices.</td></tr>}
+        </tbody>
+      </table>
+    </>}
+  </>;
+}
+
+function TreasuryView() {
+  const totalSupply = DEPLOYED_INDICES.reduce((s, i) => s + i.totalSupply, 0);
+  const totalIndices = DEPLOYED_INDICES.length;
+  const liveStocks = STOCKS.filter(s => s.live).length;
+  return <>
+    <div className="crumbs"><div className="path">Dashboard / <b>Treasury</b></div></div>
+    <div className="sec-title" style={{marginTop:18}}><h2>Protocol Treasury</h2><span className="ornament">&#10022; &#10022; &#10022;</span></div>
+    <section className="stats">
+      <div className="stat"><div className="stat-label">Index Deployed</div><div className="stat-value">{totalIndices}</div><div className="stat-foot">On-chain via IndexFactory</div></div>
+      <div className="stat"><div className="stat-label">Index Supply</div><div className="stat-value">{totalSupply.toFixed(1)}<span className="unit">tokens</span></div><div className="stat-foot">Total minted across all indices</div></div>
+      <div className="stat"><div className="stat-label">Stocks Available</div><div className="stat-value">{liveStocks}</div><div className="stat-foot">Live on RH Chain Mainnet</div></div>
+      <div className="stat"><div className="stat-label">Factory</div><div className="stat-value" style={{fontSize:14, wordBreak:'break-all'}}>{FACTORY_ADDRESS ? FACTORY_ADDRESS.slice(0,10) + '...' : 'PENDING'}</div><div className="stat-foot">MainnetIndexFactory</div></div>
+    </section>
+    <div className="sec-title" style={{marginTop:36}}><h2>Deployed Index</h2></div>
+    {DEPLOYED_INDICES.length > 0 ? <table className="indices">
+      <thead><tr><th>Name</th><th>Symbol</th><th>Stocks</th><th>Supply</th><th>Fee</th><th>Contract</th></tr></thead>
+      <tbody>
+        {DEPLOYED_INDICES.map(idx => <tr key={idx.address}>
+          <td className="idx-name">{idx.name}</td>
+          <td style={{fontFamily:'var(--mono)', fontSize:12, color:'var(--blue)', fontWeight:500}}>{idx.symbol}</td>
+          <td className="idx-stocks">{idx.stocks.join(' \u00b7 ')}</td>
+          <td style={{fontFamily:'var(--mono)', fontFeatureSettings:'"tnum"'}}>{idx.totalSupply.toFixed(2)}</td>
+          <td className="idx-fee">{idx.feeBps/100}%</td>
+          <td style={{fontFamily:'var(--mono)', fontSize:10}}><a href={RH_EXPLORER.replace('/token/','/address/') + idx.address} target="_blank" style={{color:'var(--blue)'}}>{idx.address.slice(0,8)}...</a></td>
+        </tr>)}
+      </tbody>
+    </table> : <p style={{fontFamily:'var(--sans)', color:'var(--ink-soft)', padding:40, textAlign:'center'}}>No indices deployed yet. Go to Create Index to deploy your first one.</p>}
+    <div style={{marginTop:24, padding:16, border:'1px solid var(--rule)', fontFamily:'var(--mono)', fontSize:10, color:'var(--ink-soft)', lineHeight:1.8}}>
+      <div>IndexFactory: {FACTORY_ADDRESS ? <a href={RH_EXPLORER.replace('/token/','/address/') + FACTORY_ADDRESS} target="_blank" style={{color:'var(--blue)'}}>{FACTORY_ADDRESS}</a> : <span style={{color:'var(--red)'}}>not deployed</span>}</div>
+      <div>Network: Robinhood Chain Mainnet (Chain ID: 4663)</div>
+      <div>Explorer: <a href="https://robinhoodchain.blockscout.com" target="_blank" style={{color:'var(--blue)'}}>explorer.mainnet.chain.robinhood.com</a></div>
+    </div>
+  </>;
+}
+
+function LiquidityView({ setView }) {
+  return <>
+    <div className="crumbs"><div className="path">Dashboard / <b>Liquidity</b></div></div>
+    <div className="sec-title" style={{marginTop:18}}><h2>Mainnet Liquidity Routing</h2><span className="ornament">&#10022; &#10022; &#10022;</span></div>
+    <section className="stats" style={{marginBottom:24}}>
+      <div className="stat"><div className="stat-label">Canonical Routes</div><div className="stat-value">5<span className="unit">/5</span></div><div className="stat-foot" style={{color:'var(--green)'}}>Current ETH ↔ Stock quotes verified</div></div>
+      <div className="stat"><div className="stat-label">Settlement</div><div className="stat-value" style={{fontSize:24}}>Aggregated</div><div className="stat-foot">Venue selected live by LI.FI</div></div>
+      <div className="stat"><div className="stat-label">Max Slippage</div><div className="stat-value">0.5<span className="unit">%</span></div><div className="stat-foot">Minimum output enforced in quote</div></div>
+      <div className="stat"><div className="stat-label">Custody</div><div className="stat-value" style={{fontSize:24}}>None</div><div className="stat-foot">Wallet signs every swap</div></div>
+    </section>
+    <div style={{maxWidth:820, border:'1px solid var(--ink)', padding:24, fontFamily:'var(--sans)', color:'var(--ink-soft)', lineHeight:1.7}}>
+      <b style={{color:'var(--ink)'}}>ATLAS now consumes executable Robinhood mainnet liquidity instead of the unsafe legacy AtlasVault.</b><br/>
+      Stock purchases and sales use live-validated LI.FI aggregate routes; current direct liquidity is independently visible on Uniswap V3 and Sheriff/Algebra. After the reviewed Index Router is deployed, index purchases will atomically acquire every component with ETH and index sales will atomically return ETH. Until then, direct collateralized mint and deterministic redemption remain available.
+      <div style={{fontFamily:'var(--mono)', fontSize:9.5, marginTop:14, wordBreak:'break-all'}}>Validated LI.FI Diamond: {LIFI_DIAMOND}</div>
+      <div style={{display:'flex', gap:10, flexWrap:'wrap', marginTop:18}}>
+        <button className="btn primary" onClick={() => setView('stocks')}>Trade Stock Liquidity</button>
+        <a className="btn" href="https://docs.robinhood.com/chain/building-with-stock-tokens" target="_blank" rel="noopener noreferrer" style={{textDecoration:'none'}}>Robinhood Liquidity Docs</a>
+      </div>
+    </div>
+    <div style={{maxWidth:820, border:'1px solid var(--ochre)', padding:16, marginTop:16, fontFamily:'var(--mono)', fontSize:10, color:'var(--ink-soft)', lineHeight:1.6}}>
+      External market makers provide this liquidity. ATLAS does not currently accept public LP deposits or promise yield; adding an internal LP product would require a separately audited vault and complete fee/share accounting.
+    </div>
+  </>;
+}
+
+function CreateIndexView({ setView, wallet }) {
+  const liveStocks = STOCKS.filter(s => s.live && s.token);
+  const [idxName, setIdxName] = useState('');
+  const [idxSymbol, setIdxSymbol] = useState('');
+  const [selected, setSelected] = useState([]);
+  const [feePct, setFeePct] = useState('0.3');
+  const [deploying, setDeploying] = useState(false);
+  const [result, setResult] = useState(null);
+  const labelStyle = {fontFamily:'var(--mono)', fontSize:10, letterSpacing:'.28em', textTransform:'uppercase', color:'var(--ink-soft)', display:'block', marginBottom:8};
+  const inputStyle = {width:'100%', padding:'10px 14px', border:'1px solid var(--ink)', background:'var(--paper)', fontFamily:'var(--display)', fontSize:18, letterSpacing:'.06em', color:'var(--ink)', outline:'none'};
+
+  const toggleStock = (ticker) => {
+    setSelected(prev => prev.includes(ticker) ? prev.filter(t => t !== ticker) : prev.length < 5 ? [...prev, ticker] : prev);
+  };
+
+  const deploy = async () => {
+    if (!FACTORY_ADDRESS) { setResult({ status: 'error', message: 'Mainnet factory is not deployed yet. Deployment is intentionally disabled.' }); return; }
+    if (!wallet) { alert('Connect your wallet first'); return; }
+    if (!idxName || !idxSymbol || selected.length < 2) { alert('Fill name, symbol, and select 2-5 stocks'); return; }
+    setDeploying(true);
+    try {
+      const stockAddrs = selected.map(t => STOCKS.find(s => s.ticker === t).token);
+      const equalWeight = Math.floor(10000 / selected.length);
+      const weightArr = selected.map((_, i) => i === 0 ? 10000 - equalWeight * (selected.length - 1) : equalWeight);
+      const feeBps = Math.round(parseFloat(feePct) * 100);
+      const factory = new ethers.Contract(FACTORY_ADDRESS, FACTORY_ABI, wallet.signer);
+      const tx = await factory.createIndex(idxName, idxSymbol.toUpperCase(), stockAddrs, weightArr, feeBps);
+      setResult({ status: 'pending', tx: tx.hash });
+      const receipt = await tx.wait();
+      // Get index address from event
+      const event = receipt.logs.find(l => {
+        try { return factory.interface.parseLog(l)?.name === 'IndexCreated'; } catch { return false; }
+      });
+      const indexAddr = event ? factory.interface.parseLog(event).args[0] : 'Check explorer';
+      // Reload indices
+      await loadDeployedIndices(wallet.provider);
+      setResult({ status: 'success', tx: tx.hash, address: indexAddr });
+    } catch (err) {
+      setResult({ status: 'error', message: err.reason || err.message });
+    }
+    setDeploying(false);
+  };
+
+  return <>
+    <div className="crumbs"><div className="path">Dashboard / <b>Create Index</b></div></div>
+    <div className="sec-title" style={{marginTop:18}}><h2>Create New Index</h2><span className="ornament">&#10022; &#10022; &#10022;</span></div>
+    <p style={{fontFamily:'var(--sans)', fontSize:14, color:'var(--ink-soft)', lineHeight:1.6, maxWidth:600, marginBottom:24}}>
+      Deploy a real ERC-20 index token on Robinhood Chain. Select 2-5 stocks, set your fee, and deploy.
+    </p>
+    <div style={{border:'1px solid var(--ink)', padding:28, maxWidth:620, background:'var(--paper)', clipPath:'polygon(0 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%)'}}>
+      <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginBottom:20}}>
+        <div>
+          <label style={labelStyle}>Index Name</label>
+          <input style={inputStyle} placeholder="e.g. Tech Titans" value={idxName} onChange={e => setIdxName(e.target.value)} />
+        </div>
+        <div>
+          <label style={labelStyle}>Ticker Symbol</label>
+          <input style={{...inputStyle, fontFamily:'var(--mono)'}} placeholder="e.g. TECH" value={idxSymbol} onChange={e => setIdxSymbol(e.target.value.toUpperCase().replace(/[^A-Z]/g,'').slice(0,5))} />
+        </div>
+      </div>
+      <div style={{marginBottom:20}}>
+        <label style={labelStyle}>Select Stocks (2-5) {selected.length > 0 && `· ${selected.length} selected`}</label>
+        <div style={{display:'grid', gridTemplateColumns:'repeat(5, 1fr)', gap:8}}>
+          {liveStocks.map(s => {
+            const active = selected.includes(s.ticker);
+            return <div key={s.ticker} onClick={() => toggleStock(s.ticker)} style={{
+              border: active ? '2px solid var(--ink)' : '1px solid var(--rule)',
+              padding:'12px 8px', textAlign:'center', cursor:'pointer', transition:'all .15s',
+              background: active ? 'rgba(94,121,178,.1)' : 'transparent',
+              boxShadow: active ? '3px 3px 0 var(--ink-2)' : 'none',
+            }}>
+              <div style={{fontFamily:'var(--display)', fontSize:15, fontWeight:600, letterSpacing:'.1em'}}>{s.ticker}</div>
+              <div style={{fontFamily:'var(--mono)', fontSize:9, color:'var(--ink-soft)', marginTop:4}}>${s.price.toFixed(0)}</div>
+              {active && <div style={{fontFamily:'var(--mono)', fontSize:9, color:'var(--blue)', marginTop:4}}>{Math.floor(10000/selected.length)/100}%</div>}
+            </div>;
+          })}
+        </div>
+      </div>
+      <div style={{marginBottom:24}}>
+        <label style={labelStyle}>Creator Fee (%)</label>
+        <input style={{...inputStyle, width:120, fontFamily:'var(--mono)', fontSize:14}} value={feePct}
+          onChange={e => { const v = e.target.value; if (/^\d*\.?\d*$/.test(v) && parseFloat(v || '0') <= 5) setFeePct(v); }} />
+      </div>
+
+      {result?.status === 'success' ? <div style={{border:'1px solid var(--green)', padding:16, marginBottom:16, background:'rgba(59,140,110,.06)'}}>
+        <div style={{fontFamily:'var(--display)', fontWeight:600, fontSize:16, color:'var(--green)', marginBottom:8}}>Index Deployed Successfully</div>
+        <div style={{fontFamily:'var(--mono)', fontSize:11, color:'var(--ink-soft)', wordBreak:'break-all'}}>
+          Address: <a href={RH_EXPLORER.replace('/token/','/address/') + result.address} target="_blank" style={{color:'var(--blue)'}}>{result.address}</a>
+        </div>
+        <div style={{fontFamily:'var(--mono)', fontSize:10, color:'var(--ink-mute)', marginTop:4}}>Tx: {result.tx}</div>
+      </div> : result?.status === 'error' ? <div style={{border:'1px solid var(--red)', padding:16, marginBottom:16}}>
+        <div style={{fontFamily:'var(--mono)', fontSize:12, color:'var(--red)'}}>{result.message}</div>
+      </div> : result?.status === 'pending' ? <div style={{border:'1px solid var(--blue)', padding:16, marginBottom:16}}>
+        <div style={{fontFamily:'var(--mono)', fontSize:12, color:'var(--blue)'}}>Transaction pending... {result.tx.slice(0,14)}...</div>
+      </div> : null}
+
+      <div style={{fontFamily:'var(--mono)', fontSize:10, color:'var(--ochre)', marginBottom:16}}>MAINNET FACTORY: LIVE · contracts are not externally audited.</div>
+      <button className="btn primary" style={{padding:'12px 24px', fontSize:12}} onClick={deploy} disabled={deploying || !wallet || !FACTORY_ADDRESS}>
+        {!FACTORY_ADDRESS ? 'Mainnet Deployment Pending' : !wallet ? 'Connect Wallet First' : deploying ? 'Deploying...' : `Deploy $${idxSymbol || 'INDEX'} on Robinhood Chain`}
+      </button>
+    </div>
+  </>;
+}
+
+// ─── DOCS VIEW ───
+function DocsView() {
+  const section = { marginBottom:34 };
+  const h2 = {fontFamily:'var(--display)', fontSize:26, letterSpacing:'.04em', margin:'0 0 14px', borderBottom:'1px solid var(--ink)', paddingBottom:10};
+  const p = {fontFamily:'var(--sans)', fontSize:13, color:'var(--ink-soft)', lineHeight:1.75, maxWidth:820};
+  const table = {width:'100%', borderCollapse:'collapse', margin:'14px 0 22px', fontFamily:'var(--mono)', fontSize:10};
+  const th = {textAlign:'left', padding:'9px 10px', border:'1px solid var(--ink)', background:'rgba(94,121,178,.08)', letterSpacing:'.12em', textTransform:'uppercase'};
+  const td = {padding:'9px 10px', border:'1px solid var(--rule)', wordBreak:'break-word'};
+  return <>
+    <div className="crumbs"><div className="path">Dashboard / <b>Documentation</b></div></div>
+    <div className="sec-title" style={{marginTop:18}}><h2>Mainnet Technical Status</h2><span className="ornament">&#10022; &#10022; &#10022;</span></div>
+
+    <section style={section}>
+      <h2 style={h2}>Launch Status</h2>
+      <p style={p}><b>ATLAS Factory and Router are deployed on Robinhood Chain Mainnet; canonical Stock Token swaps use live-validated LI.FI aggregate quotes.</b> Creation and ETH-based index routing are enabled. The contracts remain unaudited, and the vulnerable legacy AtlasVault and fixed-price StockPaymentVault remain excluded.</p>
+      <table style={table}><tbody>
+        <tr><td style={td}>Network configuration</td><td style={td}><span style={{color:'var(--green)'}}>Verified</span></td></tr>
+        <tr><td style={td}>Canonical Stock Tokens</td><td style={td}><span style={{color:'var(--green)'}}>Verified via official API and RPC bytecode</span></td></tr>
+        <tr><td style={td}>MainnetIndexFactory</td><td style={td}><span style={{color:'var(--green)'}}>Deployed · 0xf920Cd56...e5f0c</span></td></tr>
+        <tr><td style={td}>MainnetIndexRouter</td><td style={td}><span style={{color:'var(--green)'}}>Deployed · 0x606f0599...CeB7A</span></td></tr>
+        <tr><td style={td}>External audit / legal review</td><td style={td}><span style={{color:'var(--red)'}}>Still required</span></td></tr>
+      </tbody></table>
+    </section>
+
+    <section style={section}>
+      <h2 style={h2}>Robinhood Chain Mainnet</h2>
+      <table style={table}>
+        <thead><tr><th style={th}>Parameter</th><th style={th}>Value</th></tr></thead>
+        <tbody>
+          <tr><td style={td}>Chain ID</td><td style={td}>4663 · 0x1237</td></tr>
+          <tr><td style={td}>RPC</td><td style={td}>https://rpc.mainnet.chain.robinhood.com</td></tr>
+          <tr><td style={td}>Explorer</td><td style={td}>https://robinhoodchain.blockscout.com</td></tr>
+          <tr><td style={td}>Gas asset</td><td style={td}>ETH</td></tr>
+        </tbody>
+      </table>
+      <p style={p}>ATLAS currently supports five canonical 18-decimal Stock Tokens: TSLA, AMZN, NFLX, AMD and PLTR. Their addresses are shown in the Stocks view and sourced from the official Robinhood asset endpoint. Portfolio quantities use ERC-8056 <code>uiMultiplier()</code>, so splits and other corporate actions are reflected as underlying-share units while transfers and collateral remain in raw ERC-20 units.</p>
+    </section>
+
+    <section style={section}>
+      <h2 style={h2}>Mainnet Contract Model</h2>
+      <p style={p}>MainnetIndexFactory restricts baskets to an owner-managed allowlist of canonical Stock Tokens, rejects duplicate/zero-weight components and deploys immutable MainnetIndexToken contracts. Factory ownership uses a two-step transfer.</p>
+      <p style={p}>Mint is directly collateralized: the user approves every underlying token and the index contract verifies the exact balance increase before minting. The immutable fee is split 50/50 between creator and treasury. Burn returns the deterministic raw-unit basket and never distributes accidental donations or surplus. Transfers use OpenZeppelin SafeERC20 and mint/burn are protected against reentrancy.</p>
+      <p style={p}>MainnetIndexRouter restores the testnet-style ETH buy/sell experience without using LP inventory: it executes component swaps only against the fixed LI.FI Diamond, verifies every received collateral delta, atomically mints the index, and refunds excess assets. The reverse path burns the index, swaps each redeemed component to ETH, and enforces aggregate minimum output.</p>
+      <div style={{...p, border:'1px solid var(--red)', padding:14}}>Composition weights define token-unit backing, not USD-value weights. A value-weighted index would require a separately specified and audited oracle/rebalancing design.</div>
+    </section>
+
+    <section style={section}>
+      <h2 style={h2}>AI Terminal Security</h2>
+      <p style={p}>The browser sends bounded history and public protocol context only to <code>/api/chat</code>. The ModelArk credential, base URL, system prompt and fallback model order exist only in the serverless runtime. Provider errors are sanitized, request sizes are limited, and authentication/billing failures stop immediately instead of cycling through every fallback.</p>
+      <p style={p}>Primary model: DeepSeek V4 Pro. Fallbacks: DeepSeek V4 Flash, Seed 2.0 Pro, GLM 4.7, DeepSeek V3.2, GPT-OSS-120B and Seed 2.0 Lite. Current live probe result: <b style={{color:'var(--red)'}}>the provider account returns AccountOverdueError</b>; model inference will not work until billing/account status is fixed.</p>
+      <p style={p}>No model can execute a transaction directly. The browser validates the action, displays confirmation and MetaMask remains the signing boundary. Explicit <code>buy_stock</code> and <code>sell_stock</code> actions use the same live-validated LI.FI aggregate quote path as the Stocks view; legacy vault actions remain unavailable.</p>
+    </section>
+
+    <section style={section}>
+      <h2 style={h2}>Deployment Guards</h2>
+      <p style={p}>The mainnet script compiles in memory and performs read-only preflight by default. Factory and Router were deployed through the guarded path; the confirmation was relocked immediately afterward. Re-deployment still requires the private key, non-zero treasury, exact confirmation phrase, HTTPS RPC, Chain ID 4663 and canonical contract bytecode.</p>
+      <div style={{display:'flex', gap:10, flexWrap:'wrap'}}>
+        <a className="btn" href="https://docs.robinhood.com/chain/connecting" target="_blank" rel="noopener noreferrer">Network Docs</a>
+        <a className="btn" href="https://docs.robinhood.com/chain/contracts" target="_blank" rel="noopener noreferrer">Token Contracts</a>
+        <a className="btn" href="https://api.robinhood.com/rhj/assets" target="_blank" rel="noopener noreferrer">Official Asset API</a>
+      </div>
+    </section>
+  </>;
+}
+
+// ─── RAIL ───
+function RightRail({ setView }) {
+  return <aside className="rail">
+    <div className="rail-section">
+      <div className="rail-kicker">AI Agent</div>
+      <h3>Terminal <span className="deco">&middot; &#10057;</span></h3>
+      <div className="terminal-mini" onClick={() => setView('terminal')} style={{cursor:'pointer'}}>
+        <div className="tbody">
+          <div><span className="prompt">&gt;</span> show TSLA price</div>
+          <div className="response">Live price data is read-only.</div>
+          <div className="success" style={{color:'var(--blue)'}}>Example · no transaction executed.</div>
+          <br/>
+          <div style={{color:'var(--ink-mute)', fontSize:10, letterSpacing:'.15em'}}>Click to open full terminal &rarr;</div>
+        </div>
+      </div>
+    </div>
+    <div className="rail-section">
+      <div className="rail-kicker">On-Chain</div>
+      <h3>Index Funds <span className="deco">&middot; &#10022;</span></h3>
+      {DEPLOYED_INDICES.length > 0
+        ? DEPLOYED_INDICES.map((idx, i) => <div key={i} className="feed-item">
+            <div className="feed-row"><span className="feed-action">{idx.symbol}</span><span className="feed-tag create">live</span></div>
+            <div className="feed-detail">{idx.name} ({idx.stocks.join(', ')})</div>
+            <div className="feed-time">Supply: {idx.totalSupply.toFixed(2)}</div>
+          </div>)
+        : <div style={{fontFamily:'var(--mono)', fontSize:10, color:'var(--ink-mute)', padding:'12px 0'}}>No indices deployed yet</div>
+      }
+    </div>
+    <div className="rail-section">
+      <div className="rail-kicker">Protocol</div>
+      <h3>Factory <span className="deco">&middot; &#9830;</span></h3>
+      <div className="treas-value">{DEPLOYED_INDICES.length}<span className="unit">index</span></div>
+      <div className="treas-delta">{STOCKS.filter(s=>s.live).length} stocks live</div>
+      <div className="treas-breakdown">
+        <div className="treas-row"><span>Supply</span><b>{DEPLOYED_INDICES.reduce((s,i)=>s+i.totalSupply,0).toFixed(1)}</b></div>
+        <div className="treas-row"><span>Stocks</span><b>{STOCKS.filter(s=>s.live).map(s=>s.ticker).join(', ')}</b></div>
+        <div className="treas-row"><span>Chain</span><b>RH Mainnet</b></div>
+      </div>
+    </div>
+  </aside>;
+}
+
+// ─── APP ───
+function App() {
+  const validViews = ['overview','indices','stocks','terminal','portfolio','treasury','create','liquidity','docs'];
+  const hashView = window.location.hash.replace('#','');
+  const [view, setView] = useState(validViews.includes(hashView) ? hashView : 'overview');
+  const { wallet, balances, loading: walletLoading, connect: connectW, refresh: refreshBalances } = useWallet();
+  const { pricesLoaded, lastUpdate } = useLivePrices();
+  // Force re-render when prices update
+  const [, forceUpdate] = useState(0);
+  useEffect(() => { if (lastUpdate) forceUpdate(n => n + 1); }, [lastUpdate]);
+
+  // Load indices on startup without wallet (public RPC)
+  useEffect(() => {
+    if (DEPLOYED_INDICES.length === 0 && !wallet) {
+      const pub = new ethers.JsonRpcProvider('https://rpc.mainnet.chain.robinhood.com');
+      loadDeployedIndices(pub).then(() => forceUpdate(n => n + 1));
+    }
+  }, []);
+
+  useEffect(() => {
+    function onHash(){ const v = window.location.hash.replace('#',''); if(validViews.includes(v)) setView(v); }
+    window.addEventListener('hashchange', onHash);
+    return () => window.removeEventListener('hashchange', onHash);
+  }, []);
+
+  const menuItems = [
+    { group:'Markets', items: [
+      { key:'overview', num:'I.', label:'Overview' },
+      { key:'indices', num:'II.', label:'Index' },
+      { key:'stocks', num:'III.', label:'Stocks' },
+    ]},
+    { group:'Trade', items: [
+      { key:'terminal', num:'IV.', label:'Terminal' },
+      { key:'portfolio', num:'V.', label:'Portfolio' },
+    ]},
+    { group:'Protocol', items: [
+      { key:'treasury', num:'VI.', label:'Treasury' },
+      { key:'create', num:'VII.', label:'Create Index' },
+      { key:'liquidity', num:'VIII.', label:'Liquidity' },
+      { key:'docs', num:'IX.', label:'Documentation' },
+    ]},
+  ];
+
+  const showRail = view === 'overview' || view === 'indices' || view === 'stocks';
+
+  return <div className={`app ${showRail ? 'has-rail' : ''}`}>
+    <aside className="nav">
+      <div className="brand">
+        <div className="brand-seal" aria-hidden="true">
+          <img src="assets/brand/atlas-icon-light.png" alt="" />
+        </div>
+        <div>
+          <div className="brand-name">ATLAS</div>
+          <div className="brand-sub">Stock Index Protocol</div>
+        </div>
+      </div>
+      <div className="agent-status">
+        <div className="agent-row"><span className="agent-dot"/> AI &middot; Server Proxy</div>
+        <div className="agent-mode">Mode &middot; {view === 'terminal' ? 'Terminal · billing check' : 'Server-managed'}</div>
+        {wallet
+          ? <div className="agent-mode" style={{color:'var(--green)'}}>{wallet.address.slice(0,6)}...{wallet.address.slice(-4)} &middot; {(balances.ETH || 0).toFixed(4)} ETH</div>
+          : <div className="agent-mode" style={{color:'var(--ink-mute)', cursor:'pointer', textDecoration:'underline'}} onClick={connectW}>{walletLoading ? 'Connecting...' : 'Connect Wallet'}</div>
+        }
+      </div>
+      <nav className="menu">
+        {menuItems.map(g => <React.Fragment key={g.group}>
+          <div className="menu-label">{g.group}</div>
+          {g.items.map(item =>
+            <div key={item.key} className={`menu-item ${view === item.key ? 'active' : ''}`} onClick={() => setView(item.key)}>
+              <span className="num">{item.num}</span> {item.label}
+            </div>
+          )}
+        </React.Fragment>)}
+      </nav>
+      <div className="nav-footer">
+        <div><span className="k">Network</span> &nbsp;{wallet ? <span style={{color:'var(--green)'}}>Robinhood Chain</span> : 'Robinhood Chain'}</div>
+        <div><span className="k">Protocol</span> &nbsp;ATLAS Index v1</div>
+        <div><span className="k">Prices</span> &nbsp;{pricesLoaded ? <span style={{color:'var(--green)'}}>Live</span> : 'Cached'}</div>
+        <div><span className="k">Build</span> &nbsp;<b>v0.1.0 &middot; mainnet · unaudited</b></div>
+        <a href="https://docs.robinhood.com/chain/contracts" target="_blank" rel="noopener noreferrer" style={{display:'block', marginTop:10, padding:'6px 10px', border:'1px solid var(--green)', color:'var(--green)', textAlign:'center', fontFamily:'var(--mono)', fontSize:9, letterSpacing:'.14em', textTransform:'uppercase', textDecoration:'none'}}>Get Mainnet Stocks</a>
+      </div>
+    </aside>
+
+    <main>
+      {view === 'overview' && <OverviewView setView={setView} wallet={wallet} balances={balances} connectW={connectW} walletLoading={walletLoading} refreshBalances={refreshBalances}/>}
+      {view === 'indices' && <IndicesView setView={setView} wallet={wallet} balances={balances} refreshBalances={refreshBalances}/>}
+      {view === 'stocks' && <StocksView wallet={wallet} balances={balances} refreshBalances={refreshBalances} connectW={connectW} walletLoading={walletLoading}/>}
+      {view === 'terminal' && <TerminalView wallet={wallet} balances={balances} refreshBalances={refreshBalances} connectW={connectW} walletLoading={walletLoading}/>}
+      {view === 'portfolio' && <PortfolioView wallet={wallet} balances={balances} connectW={connectW} walletLoading={walletLoading}/>}
+      {view === 'treasury' && <TreasuryView/>}
+      {view === 'create' && <CreateIndexView setView={setView} wallet={wallet}/>}
+      {view === 'liquidity' && <LiquidityView setView={setView}/>}
+      {view === 'docs' && <DocsView setView={setView}/>}
+    </main>
+
+    {showRail && <RightRail setView={setView}/>}
+  </div>;
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
