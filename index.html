@@ -87,6 +87,7 @@
   .topnav a.active{ color: var(--blue); }
 
   .topright{ display:flex; align-items:center; gap:12px; }
+  .social-btn{ min-width:42px; justify-content:center; }
   .live-chip{
     display:inline-flex; align-items:center; gap:8px;
     border:1px solid var(--ink); padding: 6px 12px;
@@ -417,6 +418,10 @@
     .footer-inner{ grid-template-columns: 1fr 1fr; }
   }
   @media (max-width: 600px){
+    .topbar-inner{ padding:10px 14px; gap:8px; }
+    .brand-sub, .topright .live-chip{ display:none; }
+    .topright{ gap:6px; }
+    .topright .btn{ padding:10px; font-size:9px; }
     .hero-stats{ grid-template-columns: 1fr; }
     .ribbon{ grid-template-columns: 1fr; }
     .steps-grid{ grid-template-columns: 1fr; }
@@ -452,6 +457,7 @@
     </nav>
     <div class="topright">
       <span class="live-chip"><span class="live-dot"></span> Mainnet Live</span>
+      <a href="https://x.com/AtlasProtocolRH" class="btn social-btn" target="_blank" rel="noopener noreferrer" aria-label="Follow ATLAS Protocol on X">X</a>
       <a href="ATLAS.html" class="btn primary">Launch App</a>
     </div>
   </div>

@@ -62,6 +62,18 @@ test('Vercel deployment includes package metadata required by serverless functio
   assert.doesNotMatch(ignored, /^package(?:-lock)?\.json$/m);
 });
 
+test('landing and every app header link to the official ATLAS X account safely', () => {
+  const app = fs.readFileSync(path.join(ROOT, 'ATLAS.html'), 'utf8');
+  const landing = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  const officialX = 'https://x.com/AtlasProtocolRH';
+
+  assert.match(landing, new RegExp(officialX.replace(/[./]/g, '\\$&')));
+  assert.match(landing, /target="_blank" rel="noopener noreferrer" aria-label="Follow ATLAS Protocol on X"/);
+  assert.match(app, new RegExp(officialX.replace(/[./]/g, '\\$&')));
+  assert.match(app, /target="_blank" rel="noopener noreferrer" aria-label="Follow ATLAS Protocol on X"/);
+  assert.equal((app.match(/<XButton \/>/g) || []).length, 9);
+});
+
 test('public pages contain mainnet tokens but no legacy testnet wiring', () => {
   const app = fs.readFileSync(path.join(ROOT, 'ATLAS.html'), 'utf8');
   const landing = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');

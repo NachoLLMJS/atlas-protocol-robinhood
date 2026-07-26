@@ -889,6 +889,10 @@ function executeAction(parsed, balances) {
 
 // ─── VIEWS ───
 
+function XButton() {
+  return <a className="btn ghost" href="https://x.com/AtlasProtocolRH" target="_blank" rel="noopener noreferrer" aria-label="Follow ATLAS Protocol on X">X</a>;
+}
+
 function OverviewView({ setView, wallet, balances, connectW, walletLoading, refreshBalances }) {
   const liveStocks = STOCKS.filter(s => s.live);
   const topIndex = DEPLOYED_INDICES[0];
@@ -904,6 +908,7 @@ function OverviewView({ setView, wallet, balances, connectW, walletLoading, refr
     <div className="crumbs">
       <div className="path">Dashboard / <b>Overview</b></div>
       <div className="actions">
+        <XButton />
         {wallet
           ? <button className="btn ghost" onClick={refreshBalances}>{wallet.address.slice(0,6)}...{wallet.address.slice(-4)}</button>
           : <button className="btn ghost" onClick={connectW} disabled={walletLoading}>{walletLoading ? 'Connecting...' : 'Connect Wallet'}</button>
@@ -1187,6 +1192,7 @@ function IndicesView({ setView, wallet, balances, refreshBalances }) {
     <div className="crumbs">
       <div className="path">Dashboard / <b>Index</b></div>
       <div className="actions">
+        <XButton />
         <button className="btn primary" onClick={() => setView('create')}>Create New Index</button>
       </div>
     </div>
@@ -1302,6 +1308,7 @@ function StocksView({ wallet, balances, refreshBalances, connectW, walletLoading
     <div className="crumbs">
       <div className="path">Dashboard / <b>Stocks</b></div>
       <div className="actions">
+        <XButton />
         {wallet
           ? <button className="btn ghost" onClick={refreshBalances}>ETH: {(balances.ETH || 0).toFixed(5)}</button>
           : <button className="btn ghost" onClick={connectW} disabled={walletLoading}>{walletLoading ? 'Connecting...' : 'Connect Wallet'}</button>
@@ -1656,6 +1663,7 @@ function TerminalView({ wallet, balances, refreshBalances, connectW, walletLoadi
     <div className="crumbs">
       <div className="path">Dashboard / <b>Terminal</b></div>
       <div className="actions">
+        <XButton />
         <button className="btn ghost" onClick={clearChat}>Clear</button>
       </div>
     </div>
@@ -1709,7 +1717,7 @@ function PortfolioView({ wallet, balances, connectW, walletLoading }) {
   const holdings = [...stockHoldings, ...indexHoldings];
   const totalValue = holdings.reduce((s, h) => s + parseFloat(h.value), 0);
   return <>
-    <div className="crumbs"><div className="path">Dashboard / <b>Portfolio</b></div></div>
+    <div className="crumbs"><div className="path">Dashboard / <b>Portfolio</b></div><div className="actions"><XButton /></div></div>
     <div className="sec-title" style={{marginTop:18}}>
       <h2>Your Portfolio</h2>
       <span className="ornament">&#10022; &#10022; &#10022;</span>
@@ -1756,7 +1764,7 @@ function TreasuryView() {
   const totalIndices = DEPLOYED_INDICES.length;
   const liveStocks = STOCKS.filter(s => s.live).length;
   return <>
-    <div className="crumbs"><div className="path">Dashboard / <b>Treasury</b></div></div>
+    <div className="crumbs"><div className="path">Dashboard / <b>Treasury</b></div><div className="actions"><XButton /></div></div>
     <div className="sec-title" style={{marginTop:18}}><h2>Protocol Treasury</h2><span className="ornament">&#10022; &#10022; &#10022;</span></div>
     <section className="stats">
       <div className="stat"><div className="stat-label">Index Deployed</div><div className="stat-value">{totalIndices}</div><div className="stat-foot">On-chain via IndexFactory</div></div>
@@ -1788,7 +1796,7 @@ function TreasuryView() {
 
 function LiquidityView({ setView }) {
   return <>
-    <div className="crumbs"><div className="path">Dashboard / <b>Liquidity</b></div></div>
+    <div className="crumbs"><div className="path">Dashboard / <b>Liquidity</b></div><div className="actions"><XButton /></div></div>
     <div className="sec-title" style={{marginTop:18}}><h2>Mainnet Liquidity Routing</h2><span className="ornament">&#10022; &#10022; &#10022;</span></div>
     <section className="stats" style={{marginBottom:24}}>
       <div className="stat"><div className="stat-label">Canonical Routes</div><div className="stat-value">5<span className="unit">/5</span></div><div className="stat-foot" style={{color:'var(--green)'}}>Current ETH ↔ Stock quotes verified</div></div>
@@ -1855,7 +1863,7 @@ function CreateIndexView({ setView, wallet }) {
   };
 
   return <>
-    <div className="crumbs"><div className="path">Dashboard / <b>Create Index</b></div></div>
+    <div className="crumbs"><div className="path">Dashboard / <b>Create Index</b></div><div className="actions"><XButton /></div></div>
     <div className="sec-title" style={{marginTop:18}}><h2>Create New Index</h2><span className="ornament">&#10022; &#10022; &#10022;</span></div>
     <p style={{fontFamily:'var(--sans)', fontSize:14, color:'var(--ink-soft)', lineHeight:1.6, maxWidth:600, marginBottom:24}}>
       Deploy a real ERC-20 index token on Robinhood Chain. Select 2-5 stocks, set your fee, and deploy.
@@ -1924,7 +1932,7 @@ function DocsView() {
   const th = {textAlign:'left', padding:'9px 10px', border:'1px solid var(--ink)', background:'rgba(94,121,178,.08)', letterSpacing:'.12em', textTransform:'uppercase'};
   const td = {padding:'9px 10px', border:'1px solid var(--rule)', wordBreak:'break-word'};
   return <>
-    <div className="crumbs"><div className="path">Dashboard / <b>Documentation</b></div></div>
+    <div className="crumbs"><div className="path">Dashboard / <b>Documentation</b></div><div className="actions"><XButton /></div></div>
     <div className="sec-title" style={{marginTop:18}}><h2>Mainnet Technical Status</h2><span className="ornament">&#10022; &#10022; &#10022;</span></div>
 
     <section style={section}>
