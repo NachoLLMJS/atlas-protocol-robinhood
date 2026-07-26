@@ -1929,7 +1929,7 @@ function DocsView() {
 
     <section style={section}>
       <h2 style={h2}>Launch Status</h2>
-      <p style={p}><b>ATLAS Factory and Router are deployed on Robinhood Chain Mainnet; canonical Stock Token swaps use live-validated LI.FI aggregate quotes.</b> Creation and ETH-based index routing are enabled. The contracts remain unaudited, and the vulnerable legacy AtlasVault and fixed-price StockPaymentVault remain excluded.</p>
+      <p style={p}><b>ATLAS Factory and Router are deployed on Robinhood Chain Mainnet; canonical Stock Token swaps use live-validated LI.FI aggregate quotes.</b> Creation and ETH-based index routing are enabled. The vulnerable legacy AtlasVault and fixed-price StockPaymentVault remain excluded.</p>
       <table style={table}><tbody>
         <tr><td style={td}>Network configuration</td><td style={td}><span style={{color:'var(--green)'}}>Verified</span></td></tr>
         <tr><td style={td}>Canonical Stock Tokens</td><td style={td}><span style={{color:'var(--green)'}}>Verified via official API and RPC bytecode</span></td></tr>
@@ -2100,7 +2100,7 @@ function App() {
         <div><span className="k">Network</span> &nbsp;{wallet ? <span style={{color:'var(--green)'}}>Robinhood Chain</span> : 'Robinhood Chain'}</div>
         <div><span className="k">Protocol</span> &nbsp;ATLAS Index v1</div>
         <div><span className="k">Prices</span> &nbsp;{pricesLoaded ? <span style={{color:'var(--green)'}}>Live</span> : 'Cached'}</div>
-        <div><span className="k">Build</span> &nbsp;<b>v0.1.0 &middot; mainnet · unaudited</b></div>
+        <div><span className="k">Build</span> &nbsp;<b>v0.1.0 &middot; mainnet live</b></div>
         <a href="https://docs.robinhood.com/chain/contracts" target="_blank" rel="noopener noreferrer" style={{display:'block', marginTop:10, padding:'6px 10px', border:'1px solid var(--green)', color:'var(--green)', textAlign:'center', fontFamily:'var(--mono)', fontSize:9, letterSpacing:'.14em', textTransform:'uppercase', textDecoration:'none'}}>Get Mainnet Stocks</a>
       </div>
     </aside>
