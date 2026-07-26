@@ -1963,8 +1963,8 @@ function DocsView() {
 
     <section style={section}>
       <h2 style={h2}>AI Terminal Security</h2>
-      <p style={p}>The browser sends bounded history and public protocol context only to <code>/api/chat</code>. The ModelArk credential, base URL, system prompt and fallback model order exist only in the serverless runtime. Provider errors are sanitized, request sizes are limited, and authentication/billing failures stop immediately instead of cycling through every fallback.</p>
-      <p style={p}>Primary model: DeepSeek V4 Pro. Fallbacks: DeepSeek V4 Flash, Seed 2.0 Pro, GLM 4.7, DeepSeek V3.2, GPT-OSS-120B and Seed 2.0 Lite. Current live probe result: <b style={{color:'var(--red)'}}>the provider account returns AccountOverdueError</b>; model inference will not work until billing/account status is fixed.</p>
+      <p style={p}>The browser sends bounded history and public protocol context only to <code>/api/chat</code>. The OpenAI credential, base URL, system prompt and fallback model order exist only in the serverless runtime. Provider errors are sanitized, request sizes are limited, and authentication/quota failures stop immediately instead of cycling through every fallback.</p>
+      <p style={p}>Primary model: GPT-4.1 mini. Fallback: GPT-4.1 nano. Every request uses a strict JSON Schema and every response is validated again server-side before the browser receives an action.</p>
       <p style={p}>No model can execute a transaction directly. The browser validates the action, displays confirmation and MetaMask remains the signing boundary. Explicit <code>buy_stock</code> and <code>sell_stock</code> actions use the same live-validated LI.FI aggregate quote path as the Stocks view; legacy vault actions remain unavailable.</p>
     </section>
 
@@ -2080,7 +2080,7 @@ function App() {
       </div>
       <div className="agent-status">
         <div className="agent-row"><span className="agent-dot"/> AI &middot; Server Proxy</div>
-        <div className="agent-mode">Mode &middot; {view === 'terminal' ? 'Terminal · billing check' : 'Server-managed'}</div>
+        <div className="agent-mode">Mode &middot; {view === 'terminal' ? 'Terminal · OpenAI' : 'Server-managed'}</div>
         {wallet
           ? <div className="agent-mode" style={{color:'var(--green)'}}>{wallet.address.slice(0,6)}...{wallet.address.slice(-4)} &middot; {(balances.ETH || 0).toFixed(4)} ETH</div>
           : <div className="agent-mode" style={{color:'var(--ink-mute)', cursor:'pointer', textDecoration:'underline'}} onClick={connectW}>{walletLoading ? 'Connecting...' : 'Connect Wallet'}</div>

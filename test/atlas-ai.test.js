@@ -28,8 +28,8 @@ test('uses the server credential and falls back to the next model', async () => 
   const ai = createAtlasAI({
     fetchImpl,
     env: {
-      ARK_API_KEY: 'server-only-secret',
-      ARK_BASE_URL: 'https://ark.example/api/v3',
+      OPENAI_API_KEY: 'server-only-secret',
+      OPENAI_BASE_URL: 'https://api.openai.test/v1',
       ATLAS_AI_MODELS: 'primary-model,fallback-model',
     },
   });
@@ -55,11 +55,11 @@ test('does not waste fallbacks when billing or authentication blocks the account
   const ai = createAtlasAI({
     fetchImpl: async () => {
       calls += 1;
-      return jsonResponse(403, { error: { code: 'AccountOverdueError', message: 'overdue' } });
+      return jsonResponse(429, { error: { code: 'insufficient_quota', message: 'quota exhausted' } });
     },
     env: {
-      ARK_API_KEY: 'server-only-secret',
-      ARK_BASE_URL: 'https://ark.example/api/v3',
+      OPENAI_API_KEY: 'server-only-secret',
+      OPENAI_BASE_URL: 'https://api.openai.test/v1',
       ATLAS_AI_MODELS: 'one,two,three',
     },
   });
@@ -76,7 +76,7 @@ test('rejects oversized or malformed browser context before calling the provider
   let calls = 0;
   const ai = createAtlasAI({
     fetchImpl: async () => { calls += 1; return jsonResponse(200, {}); },
-    env: { ARK_API_KEY: 'secret', ARK_BASE_URL: 'https://ark.example/api/v3' },
+    env: { OPENAI_API_KEY: 'secret', OPENAI_BASE_URL: 'https://api.openai.test/v1' },
   });
 
   await assert.rejects(
@@ -99,8 +99,8 @@ test('falls back when a model violates the required JSON response contract', asy
       return jsonResponse(200, { choices: [{ message: { content: '{"reply":"Safe answer","action":"none","data":{}}' } }] });
     },
     env: {
-      ARK_API_KEY: 'server-only-secret',
-      ARK_BASE_URL: 'https://ark.example/api/v3',
+      OPENAI_API_KEY: 'server-only-secret',
+      OPENAI_BASE_URL: 'https://api.openai.test/v1',
       ATLAS_AI_MODELS: 'powerful-model,structured-model',
     },
   });
@@ -111,7 +111,7 @@ test('falls back when a model violates the required JSON response contract', asy
   assert.equal(result.reply, 'Safe answer');
 });
 
-test('requests strict JSON Schema from the structured Seed fallback', async () => {
+test('requests strict JSON Schema from every OpenAI model', async () => {
   const { createAtlasAI } = require('../lib/atlas-ai');
   const calls = [];
   const ai = createAtlasAI({
@@ -122,26 +122,26 @@ test('requests strict JSON Schema from the structured Seed fallback', async () =
       return jsonResponse(200, { choices: [{ message: { content: '{"reply":"ok","action":"none","data":{}}' } }] });
     },
     env: {
-      ARK_API_KEY: 'server-only-secret',
-      ARK_BASE_URL: 'https://ark.example/api/v3',
-      ATLAS_AI_MODELS: 'deepseek-v4-pro-260425,seed-2-0-lite-260428',
+      OPENAI_API_KEY: 'server-only-secret',
+      OPENAI_BASE_URL: 'https://api.openai.test/v1',
+      ATLAS_AI_MODELS: 'gpt-4.1-mini,gpt-4.1-nano',
     },
   });
 
   await ai({ history: [{ role: 'user', content: 'hello' }], context: {} });
-  assert.equal(calls[0].response_format, undefined);
+  assert.equal(calls[0].response_format.type, 'json_schema');
   assert.equal(calls[1].response_format.type, 'json_schema');
   assert.equal(calls[1].response_format.json_schema.strict, true);
   const dataSchema = calls[1].response_format.json_schema.schema.properties.data;
   assert.deepEqual(dataSchema.required, ['ticker', 'indexTicker', 'qty', 'ethAmount', 'indexName', 'indexStocks', 'toAddress', 'sendAmount', 'sendToken']);
   assert.deepEqual(calls[1].response_format.json_schema.schema.properties.action.enum, ['none', 'buy_index', 'sell_index', 'buy_stock', 'sell_stock', 'create_index', 'send', 'portfolio', 'price']);
-  assert.equal(calls[1].thinking.type, 'disabled');
+  assert.equal(calls[1].thinking, undefined);
 });
 
 test('frontend contains no AI provider secret boundary', () => {
   const html = fs.readFileSync(path.join(PROJECT_ROOT, 'ATLAS.html'), 'utf8');
   assert.doesNotMatch(html, /api\.openai\.com|api\.tavily\.com|ark\.ap-southeast/i);
-  assert.doesNotMatch(html, /OPENAI_KEY|TAVILY_KEYS|ARK_API_KEY/);
+  assert.doesNotMatch(html, /OPENAI_KEY|TAVILY_KEYS|OPENAI_API_KEY/);
   assert.doesNotMatch(html, /<script[^>]+config\.js/i);
   assert.match(html, /fetch\(['"]\/api\/chat['"]/);
 });

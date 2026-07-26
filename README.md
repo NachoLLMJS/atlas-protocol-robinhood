@@ -58,19 +58,14 @@ Open:
 
 ## Server-side AI
 
-Copy `.env.example` to `.env.local` and configure `ARK_API_KEY`. `.env.local` is ignored by Git and must never be committed, served, logged or copied into `ATLAS.html`/client JavaScript.
+Copy `.env.example` to `.env.local` and configure `OPENAI_API_KEY`. `.env.local` is ignored by Git and must never be committed, served, logged or copied into `ATLAS.html`/client JavaScript.
 
 Default model order:
 
-1. `deepseek-v4-pro-260425`
-2. `deepseek-v4-flash-260425`
-3. `seed-2-0-pro-260328`
-4. `glm-4-7-251222`
-5. `deepseek-v3-2-251201`
-6. `gpt-oss-120b-250805`
-7. `seed-2-0-lite-260428`
+1. `gpt-4.1-mini`
+2. `gpt-4.1-nano`
 
-Fallback occurs only for retryable model/capacity failures. A successful HTTP response that violates the JSON action contract also falls through safely to the next model. The final Seed 2.0 Lite fallback requests a strict JSON Schema response. Authentication, billing and account-block errors stop immediately instead of wasting calls across every model.
+Fallback occurs only for retryable model/capacity failures. Every OpenAI request uses a strict JSON Schema; a successful response that violates the action contract falls through safely. Authentication, billing and quota-block errors stop immediately instead of wasting calls across every model.
 
 For production, add durable rate limiting/authentication at the platform edge; the included in-memory serverless limit is only a basic local/instance guard.
 
