@@ -57,6 +57,11 @@ test('canonical stock metadata guard rejects missing bytecode, wrong decimals an
   assert.throws(() => validateCanonicalStockMetadata('TSLA', { code: '0x1234', decimals: 18, uiMultiplier: 0n }), /uiMultiplier/i);
 });
 
+test('Vercel deployment includes package metadata required by serverless functions', () => {
+  const ignored = fs.readFileSync(path.join(ROOT, '.vercelignore'), 'utf8');
+  assert.doesNotMatch(ignored, /^package(?:-lock)?\.json$/m);
+});
+
 test('public pages contain mainnet tokens but no legacy testnet wiring', () => {
   const app = fs.readFileSync(path.join(ROOT, 'ATLAS.html'), 'utf8');
   const landing = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');

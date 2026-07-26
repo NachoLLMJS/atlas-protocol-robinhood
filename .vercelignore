@@ -6,7 +6,8 @@ node_modules
 .vercel
 *.log
 .env*
-package-lock.json
-package.json
 deployment.json
 README.md
+test
+docs
+.github
