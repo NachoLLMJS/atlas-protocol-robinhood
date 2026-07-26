@@ -14,6 +14,13 @@ function jsonResponse(status, payload) {
   };
 }
 
+test('system prompt requires every terminal reply to be in English', () => {
+  const { buildSystemPrompt } = require('../lib/atlas-ai');
+  const prompt = buildSystemPrompt({ stocks: [], indices: [], balances: {} });
+  assert.match(prompt, /Always respond in English/i);
+  assert.doesNotMatch(prompt, /multilingual|user's language/i);
+});
+
 test('uses the server credential and falls back to the next model', async () => {
   const { createAtlasAI } = require('../lib/atlas-ai');
   const calls = [];
