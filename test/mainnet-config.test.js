@@ -74,6 +74,14 @@ test('landing and every app header link to the official ATLAS X account safely',
   assert.equal((app.match(/<XButton \/>/g) || []).length, 9);
 });
 
+test('landing and app use the transparent ATLAS header mark', () => {
+  const app = fs.readFileSync(path.join(ROOT, 'ATLAS.html'), 'utf8');
+  const landing = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  assert.match(landing, /assets\/brand\/atlas-header-mark\.png/);
+  assert.match(app, /assets\/brand\/atlas-header-mark\.png/);
+  assert.doesNotMatch(app, /atlas-icon-light\.png/);
+});
+
 test('public pages contain mainnet tokens but no legacy testnet wiring', () => {
   const app = fs.readFileSync(path.join(ROOT, 'ATLAS.html'), 'utf8');
   const landing = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');

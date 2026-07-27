@@ -75,9 +75,9 @@
   }
   .brand{ display:flex; align-items:flex-start; gap:12px; padding-bottom:18px; border-bottom:1px solid var(--rule); }
   .brand-seal{
-    width:52px; height:52px; display:grid; place-items:center; background: var(--paper); overflow:hidden; flex:0 0 auto;
+    width:52px; height:52px; display:grid; place-items:center; background: transparent; overflow:visible; flex:0 0 auto;
   }
-  .brand-seal img{ width:100%; height:100%; object-fit:cover; }
+  .brand-seal img{ width:100%; height:100%; object-fit:contain; }
   .brand-name{ font-family:var(--display); font-weight:600; font-size:20px; letter-spacing:.18em; line-height:1; margin-top:2px;}
   .brand-sub{ font-family:var(--mono); font-size:9.5px; letter-spacing:.22em; color:var(--ink-soft); text-transform:uppercase; margin-top:8px;}
 
@@ -2079,7 +2079,7 @@ function App() {
     <aside className="nav">
       <div className="brand">
         <div className="brand-seal" aria-hidden="true">
-          <img src="assets/brand/atlas-icon-light.png" alt="" />
+          <img src="assets/brand/atlas-header-mark.png" alt="" />
         </div>
         <div>
           <div className="brand-name">ATLAS</div>
