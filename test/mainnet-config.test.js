@@ -82,6 +82,13 @@ test('landing and app use the transparent ATLAS header mark', () => {
   assert.doesNotMatch(app, /atlas-icon-light\.png/);
 });
 
+test('public pages contain no Arbitrum branding', () => {
+  const app = fs.readFileSync(path.join(ROOT, 'ATLAS.html'), 'utf8');
+  const landing = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  assert.doesNotMatch(app, /arbitrum/i);
+  assert.doesNotMatch(landing, /arbitrum/i);
+});
+
 test('public pages contain mainnet tokens but no legacy testnet wiring', () => {
   const app = fs.readFileSync(path.join(ROOT, 'ATLAS.html'), 'utf8');
   const landing = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');

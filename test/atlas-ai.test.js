@@ -21,6 +21,12 @@ test('system prompt requires every terminal reply to be in English', () => {
   assert.doesNotMatch(prompt, /multilingual|user's language/i);
 });
 
+test('system prompt delegates missing index ticker and quantity to the clickable UI', () => {
+  const { buildSystemPrompt } = require('../lib/atlas-ai');
+  const prompt = buildSystemPrompt({ stocks: [], indices: [], balances: {} });
+  assert.match(prompt, /buy_index or sell_index[\s\S]*even if[\s\S]*indexTicker[\s\S]*qty[\s\S]*clickable UI/i);
+});
+
 test('uses the server credential and falls back to the next model', async () => {
   const { createAtlasAI } = require('../lib/atlas-ai');
   const calls = [];

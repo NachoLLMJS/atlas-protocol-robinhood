@@ -14,6 +14,7 @@
 <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.13.5/ethers.umd.min.js" crossorigin></script>
 <script src="stock-token-units.js"></script>
+<script src="lib/atlas-index-selection.js"></script>
 
 <style>
   :root{
@@ -438,14 +439,14 @@
   .terminal-messages .confirm-wrap{
     display:flex; gap:10px; padding: 8px 0 4px 22px; align-items:center;
   }
-  .confirm-wrap .confirm-btn{
+  .confirm-wrap .confirm-btn, .index-select-wrap .confirm-btn{
     font-family:var(--mono); font-size:10px; letter-spacing:.18em; text-transform:uppercase;
     padding: 8px 18px; border:1px solid var(--ink); cursor:pointer; transition: all .15s;
   }
-  .confirm-wrap .confirm-btn.yes{
+  .confirm-wrap .confirm-btn.yes, .index-select-wrap .confirm-btn.yes{
     background: var(--ink); color: var(--paper);
   }
-  .confirm-wrap .confirm-btn.yes:hover{ background: var(--green); border-color: var(--green); }
+  .confirm-wrap .confirm-btn.yes:hover, .index-select-wrap .confirm-btn.yes:hover{ background: var(--green); border-color: var(--green); }
   .confirm-wrap .confirm-btn.no{
     background: var(--paper); color: var(--ink-soft);
   }
@@ -453,6 +454,20 @@
   .confirm-wrap .confirm-label{
     font-family:var(--mono); font-size:10px; color:var(--ink-mute); letter-spacing:.12em;
   }
+  .index-select-wrap{
+    margin:8px 0 10px 22px; padding:14px; border:1px solid var(--rule); background:rgba(184,200,232,.16);
+  }
+  .index-select-label{ font-family:var(--mono); font-size:10px; color:var(--ink); letter-spacing:.18em; text-transform:uppercase; margin-bottom:10px; }
+  .index-choice-list{ display:flex; flex-wrap:wrap; gap:8px; }
+  .index-choice-btn{
+    border:1px solid var(--ink); background:var(--paper); color:var(--ink); padding:9px 12px; cursor:pointer;
+    font-family:var(--mono); font-size:10px; letter-spacing:.08em; text-align:left; transition:all .15s;
+  }
+  .index-choice-btn:hover, .index-choice-btn.selected{ background:var(--ink); color:var(--paper); box-shadow:2px 2px 0 var(--blue); }
+  .index-choice-btn small{ display:block; margin-top:3px; color:inherit; opacity:.7; font-size:8px; }
+  .index-choice-amount{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-top:12px; }
+  .index-choice-amount input{ width:120px; border:1px solid var(--ink); background:var(--paper); color:var(--ink); padding:8px 10px; font-family:var(--mono); }
+  .index-choice-error{ color:var(--red); font-size:10px; margin-top:8px; }
   .terminal-input-wrap{
     border-top: 2px solid var(--ink); padding: 18px 24px 18px 24px; display:flex; align-items:center; gap:14px;
     background: var(--paper-2); position:relative; z-index:1;
@@ -512,6 +527,7 @@
 
 <script type="text/babel">
 const { useState, useRef, useEffect } = React;
+const { buildIndexChoice, resolveIndexChoice } = AtlasIndexSelection;
 
 // ─── ROBINHOOD CHAIN MAINNET ───
 const RH_RPC = 'https://rpc.mainnet.chain.robinhood.com';
@@ -1106,7 +1122,7 @@ function OverviewView({ setView, wallet, balances, connectW, walletLoading, refr
     <div className="colophon">
       <span>ATLAS Protocol &middot; Robinhood Chain &middot; MMXXVI</span>
       <span className="ornament">&#10022; &#10022; &#10022;</span>
-      <span>Built on Arbitrum Orbit</span>
+      <span>Robinhood Chain Mainnet</span>
     </div>
   </>;
 }
@@ -1364,6 +1380,10 @@ function TerminalView({ wallet, balances, refreshBalances, connectW, walletLoadi
   const [isThinking, setIsThinking] = useState(false);
   const [chatHistory, setChatHistory] = useState([]);
   const [pendingConfirm, setPendingConfirm] = useState(null);
+  const [pendingIndexChoice, setPendingIndexChoice] = useState(null);
+  const [indexChoiceAddress, setIndexChoiceAddress] = useState('');
+  const [indexChoiceQty, setIndexChoiceQty] = useState('');
+  const [indexChoiceError, setIndexChoiceError] = useState('');
   const messagesEnd = useRef(null);
   const messagesArea = useRef(null);
   const wrapRef = useRef(null);
@@ -1403,6 +1423,25 @@ function TerminalView({ wallet, balances, refreshBalances, connectW, walletLoadi
 
     try {
       const parsed = await callAtlasAI(newHistory, balances);
+      const indexChoice = buildIndexChoice(parsed, DEPLOYED_INDICES);
+      if (indexChoice) {
+        setChatHistory(prev => [...prev, { role:'assistant', content:'Select an index and enter the amount.' }]);
+        if (indexChoice.indices.length) {
+          setPendingIndexChoice(indexChoice);
+          setIndexChoiceAddress(indexChoice.selectedAddress || '');
+          setIndexChoiceQty(indexChoice.quantity);
+          setIndexChoiceError('');
+        } else {
+          setPendingIndexChoice(null);
+        }
+        setMessages(prev => {
+          const without = prev.filter(m => m.type !== 'thinking');
+          if (!indexChoice.indices.length) return [...without, { type:'agent', text:'No indices are deployed yet. Create an index first.' }, { type:'spacer' }];
+          return [...without, { type:'agent', text:'Select an index and enter the amount. Your click is used directly; it is not interpreted by the AI.' }, { type:'index-select' }];
+        });
+        setIsThinking(false);
+        return;
+      }
       const confirm = buildConfirmation(parsed);
 
       // Add assistant reply to chat history
@@ -1431,6 +1470,22 @@ function TerminalView({ wallet, balances, refreshBalances, connectW, walletLoadi
       });
     }
     setIsThinking(false);
+  };
+
+  const handleIndexChoiceContinue = () => {
+    if (!pendingIndexChoice) return;
+    try {
+      const resolved = resolveIndexChoice(pendingIndexChoice, indexChoiceAddress, indexChoiceQty);
+      const confirm = buildConfirmation(resolved);
+      if (!confirm) throw new Error('Unable to prepare this index order.');
+      setPendingIndexChoice(null);
+      setIndexChoiceError('');
+      setPendingConfirm(confirm);
+      setChatHistory(prev => [...prev, { role:'user', content:`Selected ${resolved.data.indexTicker} · amount ${resolved.data.qty}.` }]);
+      setMessages(prev => prev.filter(m => m.type !== 'index-select').concat(...confirm.preview, { type:'confirm' }));
+    } catch (err) {
+      setIndexChoiceError(err.message || 'Select an index and enter a positive amount.');
+    }
   };
 
   const handleConfirm = async () => {
@@ -1653,6 +1708,10 @@ function TerminalView({ wallet, balances, refreshBalances, connectW, walletLoadi
   const clearChat = () => {
     setChatHistory([]);
     setPendingConfirm(null);
+    setPendingIndexChoice(null);
+    setIndexChoiceAddress('');
+    setIndexChoiceQty('');
+    setIndexChoiceError('');
     setMessages([
       { type:'system', text:'Atlas Terminal \u00b7 v0.1.0 \u00b7 Robinhood Chain Mainnet' },
       { type:'agent', text:'Terminal cleared. How can I help you?' },
@@ -1685,6 +1744,20 @@ function TerminalView({ wallet, balances, refreshBalances, connectW, walletLoadi
             <button className="confirm-btn yes" onClick={handleConfirm}>Confirm</button>
             <button className="confirm-btn no" onClick={handleCancel}>Cancel</button>
           </div>;
+          if (m.type === 'index-select') return <div key={i} className="index-select-wrap">
+            <div className="index-select-label">Select an index</div>
+            <div className="index-choice-list">
+              {pendingIndexChoice?.indices.map(index => <button key={index.address} type="button" className={`index-choice-btn ${indexChoiceAddress === index.address ? 'selected' : ''}`} onClick={() => { setIndexChoiceAddress(index.address); setIndexChoiceError(''); }}>
+                {index.symbol} · {index.name}
+                <small>{index.stocks?.join(' · ') || 'Index token'}</small>
+              </button>)}
+            </div>
+            <div className="index-choice-amount">
+              <input type="number" min="0" step="any" inputMode="decimal" aria-label="Index amount" placeholder="Amount" value={indexChoiceQty} onChange={e => { setIndexChoiceQty(e.target.value); setIndexChoiceError(''); }} />
+              <button type="button" className="confirm-btn yes" onClick={handleIndexChoiceContinue}>Continue</button>
+            </div>
+            {indexChoiceError && <div className="index-choice-error">{indexChoiceError}</div>}
+          </div>;
           return <div key={i} className="agent-msg">{m.text}</div>;
         })}
         <div ref={messagesEnd}/>
@@ -1695,8 +1768,8 @@ function TerminalView({ wallet, balances, refreshBalances, connectW, walletLoadi
       </div>}
       <div className="terminal-input-wrap">
         <span className="prompt-char">&#10095;</span>
-        <input ref={inputRef} className="terminal-input" value={input} onChange={e => setInput(e.target.value)} onKeyDown={handleKey} placeholder={pendingConfirm ? 'Confirm or cancel the transaction above' : 'Ask me anything... "buy TSLA", "create an index", "what is ATLAS?"'} disabled={isThinking || !!pendingConfirm} />
-        <button className="terminal-send" onClick={handleSend} disabled={isThinking || !!pendingConfirm}>{isThinking ? '...' : 'Send'}</button>
+        <input ref={inputRef} className="terminal-input" value={input} onChange={e => setInput(e.target.value)} onKeyDown={handleKey} placeholder={pendingConfirm ? 'Confirm or cancel the transaction above' : pendingIndexChoice ? 'Use the index buttons above' : 'Ask me anything... "buy TSLA", "create an index", "what is ATLAS?"'} disabled={isThinking || !!pendingConfirm || !!pendingIndexChoice} />
+        <button className="terminal-send" onClick={handleSend} disabled={isThinking || !!pendingConfirm || !!pendingIndexChoice}>{isThinking ? '...' : 'Send'}</button>
       </div>
     </div>
   </>;
